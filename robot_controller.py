@@ -43,6 +43,9 @@ class RobotController:
 
             first_yellow_robot = yellow_robots[0] if yellow_robots else None
             first_orange_ball = orange_balls[0] if orange_balls else None
+            ball_xy = [0.0, 0.0]  # ボールの座標 (初期値)
+            if (first_orange_ball):
+                ball_xy = first_orange_ball.get('center_relative_cm')
 
             move_dir = 0.0  # 前後方向の速度 (例: cm/s)
             move_speed = 0.0  # 回転方向の速度 (例: deg/s)
@@ -50,24 +53,34 @@ class RobotController:
             kick = False
             do_dribble = False
             stop = False
+            face_axis = 0
 
             if first_yellow_robot:
                 center_relative_cm = first_yellow_robot.get(
                     'center_relative_cm')
                 orientation_deg = first_yellow_robot.get('orientation_deg')
 
-                if center_relative_cm[0] > 0:
+                if center_relative_cm[0] > ball_xy[0] - 20:
                     # ボールがロボットの前方にある場合
-                    move_dir = 180
+                    if center_relative_cm[1] > ball_xy[1]:
+                        move_dir = 135
+                    else:
+                        move_dir = -135
                 else:
-                    # ボールがロボットの後方にある場合
-                    move_dir = 0
-                move_speed = abs(center_relative_cm[0]) * 0.02
+                    if center_relative_cm[1] > ball_xy[1]:
+                        move_dir = 45
+                    else:
+                        move_dir = -45
+                move_speed = abs(
+                    center_relative_cm[0] - (ball_xy[0] - 20)) * 0.025 + abs(center_relative_cm[1] - ball_xy[1]) * 0.025
+                if (move_speed > 0.5):
+                    move_speed = 0.5
 
                 # デバッグ用
-                print(
-                    f"Processing Vision Data (Yellow Robot): Pos={center_relative_cm}, Ori={orientation_deg:.1f}")
+            #     print(
+            #         f"Processing Vision Data (Yellow Robot): Pos={center_relative_cm}, Ori={orientation_deg:.1f}")
 
+                print(f"ball_xy: {ball_xy}")
                 # --- 指令データの構造化 ---
                 # ESP32 がパースしやすい形式でデータを作成
                 command_data = {
@@ -76,6 +89,7 @@ class RobotController:
                         "move_dir": move_dir,  # 直進速度
                         "move_speed": move_speed,  # 角速度 (回転)
                         "face_angle": face_angle,
+                        "face_axis": face_axis,
                         "vision_own_dir": orientation_deg,  # 自分の向き
                         "stop": stop,  # 停止フラグ
                         "kick": kick,
