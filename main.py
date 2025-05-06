@@ -58,26 +58,19 @@ def main():
                     if cmd == "emergency_stop":
                         print(
                             "Emergency Stop command received! Broadcasting to all controllers.")
-                        # target_robot_color を含めず、全てのコントローラーが受け取るようにする
-                        # もし handle_game_command で target_robot_color をチェックするなら、
-                        # ここでは game_command_data をそのまま全ての controller に渡す
                         for controller in controllers:
                             controller.handle_game_command(game_command_data)
                     elif cmd == "start_game":
-                        # ゲーム開始も全てのロボットに伝える（例として）
                         print(
                             "Start Game command received! Broadcasting to all controllers.")
                         for controller in controllers:
                             controller.handle_game_command(game_command_data)
                     elif cmd == "stop_game":
-                        # ゲーム開始も全てのロボットに伝える（例として）
                         print(
                             "Stop Game command received! Broadcasting to all controllers.")
                         for controller in controllers:
                             controller.handle_game_command(game_command_data)
                     else:
-                        # 特定のロボット宛てのコマンド (stop, move_to_center, place_ballなど)
-                        # コマンドに target_robot_color が含まれていることを想定
                         if target_robot_color in ('yellow', 'blue'):
                             if target_robot_color == 'yellow' and yellow_controller:
                                 yellow_controller.handle_game_command(
@@ -89,11 +82,8 @@ def main():
                                 print(
                                     f"Target robot '{target_robot_color}' for command '{cmd}' not found or not enabled.")
                         else:
-                            # target_robot_color が指定されていないか不正な場合
                             print(
                                 f"Received command '{cmd}' without valid target_robot_color.")
-
-                # elif ... 他のコマンドタイプも追加可能
 
             # --- 各ロボットコントローラーの制御ロジック実行 ---
             for controller in controllers:

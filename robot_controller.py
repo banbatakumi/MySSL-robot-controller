@@ -3,6 +3,7 @@ import math
 import config  # config.py から設定を読み込む
 
 from udp_communicator import UDPCommunicator
+from algorithm.move_to_pos import move_to_pos
 
 
 class RobotController:
@@ -12,15 +13,8 @@ class RobotController:
     """
 
     def __init__(self, udp_communicator: UDPCommunicator, robot_color: str):
-        """
-        Args:
-            udp_communicator: UDPCommunicatorのインスタンス
-            robot_color: このコントローラーが担当するロボットの色 ('yellow' or 'blue')
-        """
         self.udp = udp_communicator
         self.robot_color = robot_color.lower()  # 'yellow' または 'blue'
-
-        # 元コードにあったパラメータは移動ロジック依存なので、今回はシンプルに共通設定を使用
 
         # センサーデータ保持用 (このインスタンスが担当するロボットのもの)
         self.photo_front = None
@@ -31,32 +25,20 @@ class RobotController:
         self.robot_ball_pos = None
         self.robot_ball_angle = None
         self.robot_ball_dis = None
-        # 他のセンサーデータも必要に応じて追加
 
-        # 制御モード ('idle', 'move_to_center', 'move_around_ball' など)
-        self.mode = 'stop'  # 初期モードをコート中心移動とする
+        self.mode = 'stop'
 
         print(f"[{self.robot_color.capitalize()} Robot Controller] Initialized.")
 
     def handle_game_command(self, command_data):
         """
         外部からのゲームコマンドを処理し、ロボットの動作モードを切り替える。
-        Args:
-            command_data: 受信したゲームコマンドデータの辞書。
-                           例: {"type": "game_command", "command": "stop"}
-                           例: {"type": "game_command", "command": "place_ball", "x": 100, "y": 50}
-                           << 新規コマンド例 >>
-                           例: {"type": "game_command", "command": "start_game"}
-                           例: {"type": "game_command", "command": "emergency_stop"}
-                           コマンドによっては "robot_color" フィールドを含む。
         """
         cmd_type = command_data.get("type")
         cmd = command_data.get("command")
         target_robot_color = command_data.get("robot_color")
 
-        # コマンドに特定のロボット色が指定されており、かつそれがこのコントローラーの色でない場合は無視
         if target_robot_color is not None and target_robot_color != self.robot_color:
-            # print(f"[{self.robot_color.capitalize()} Controller] Ignoring command '{cmd}' targeting '{target_robot_color}'.")
             return
 
         if cmd_type == "game_command":
@@ -65,25 +47,18 @@ class RobotController:
 
             if cmd == "stop_game":
                 self.mode = 'stop_game'
-                self._placement_target_pos = None  # ボール配置目標もクリア
+                self._placement_target_pos = None
             elif cmd == "start_game":
-                # ゲーム開始時の動作を定義。例: ボール周回モードに移行
                 self.mode = 'start_game'
-                self._placement_target_pos = None  # 配置目標クリア
+                self._placement_target_pos = None
             elif cmd == "emergency_stop":
-                # 緊急停止は何よりも優先。モードをアイドルにし、即座に停止コマンドを送信
-                print(
-                    f"[{self.robot_color.capitalize()} Robot Controller] Received EMERGENCY_STOP command.")
                 self.mode = 'stop'
                 self._placement_target_pos = None
                 self._send_stop_command()  # 受信ループとは別に即座に停止コマンドを送信
 
             elif cmd == "place_ball":
-                # ボール配置コマンド。位置情報があれば取得し、モードを切り替え
                 target_x = command_data.get("x")
                 target_y = command_data.get("y")
-                print(
-                    f"[{self.robot_color.capitalize()} Robot Controller] Switching to move_to_placement. Target: ({target_x}, {target_y})")
                 self._placement_target_pos = [target_x, target_y]
                 self.mode = 'ball_placement'  # ボール配置移動モードへ
 
@@ -96,7 +71,6 @@ class RobotController:
         """
         Visionデータとセンサーデータを取得し、制御ロジックを実行し、指令を送信する。
         このメソッドはメインループから定期的に呼び出されることを想定。
-        担当ロボットが無効化されている場合は何もしない。
         """
         # ロボットが有効化されているかチェック
         if self.robot_color == 'yellow' and not config.ENABLE_YELLOW_ROBOT:
@@ -105,13 +79,11 @@ class RobotController:
             return
 
         # --- Vision データの取得 ---
-        # Visionデータは全ロボット共通なので、communicatorからまとめて取得
         latest_vision_data = self.udp.get_latest_vision_data()
         # print(
         #     f"[{self.robot_color.capitalize()} Robot Controller] Latest Vision Data: {latest_vision_data}")
 
         if not latest_vision_data:
-            # Visionデータがない場合は制御できない
             return
 
         # --- 担当ロボットのVisionデータを見つける ---
@@ -124,7 +96,6 @@ class RobotController:
             robot_data = blue_robots[0] if blue_robots else None
 
         if not robot_data:
-            # 担当ロボットのVisionデータが見つからない
             print(
                 f"[{self.robot_color.capitalize()} Robot Controller] Own vision data not found.")
             self._send_stop_command()
@@ -135,7 +106,6 @@ class RobotController:
         self.robot_angle = robot_data.get('angle')
 
         if self.robot_pos is None or self.robot_angle is None:
-            # 位置や向きデータが不完全
             print(
                 f"[{self.robot_color.capitalize()} Robot Controller] Incomplete vision data.")
             self._send_stop_command()
@@ -159,7 +129,6 @@ class RobotController:
             #     f"RobotBallPos{self.robot_ball_pos}, RobotBallAngle: {self.robot_ball_angle}, RobotBallDis: {self.robot_ball_dis}")
 
         # --- センサーデータの取得と処理 ---
-        # 担当ロボットの色に対応するキューからセンサーデータを取得
         latest_sensor_data = None
         if self.robot_color == 'yellow':
             latest_sensor_data = self.udp.get_latest_yellow_sensor_data()
@@ -167,7 +136,6 @@ class RobotController:
             latest_sensor_data = self.udp.get_latest_blue_sensor_data()
 
         if latest_sensor_data:
-            # 例: ESP32 からエンコーダーデータやIMUデータ、光センサーを受信した場合
             if latest_sensor_data.get("type") == "sensor_data":
                 # 自分のインスタンスのセンサーデータを更新
                 self.photo_front = latest_sensor_data.get(
@@ -176,7 +144,6 @@ class RobotController:
                     "photo", {}).get("back")
                 print(
                     f"[{self.robot_color.capitalize()} Robot Controller] Sensor Data: Front={self.photo_front}, Back={self.photo_back}")
-            # 他のセンサーデータ処理もここに追加
 
         # --- 制御ロジック実行 ---
         # 現在のモードに基づいて制御指令を生成
@@ -186,7 +153,7 @@ class RobotController:
         elif self.mode == 'start_game':
             command_data = self._control_move_around_ball()
         elif self.mode == 'stop_game':
-            command_data = self._control_move_to_pos(0, 0)
+            command_data = move_to_pos(self.robot_pos, [0, 0])
         elif self.mode == 'ball_placement':
             command_data = self._control_ball_placement()
         else:
