@@ -17,14 +17,17 @@ class UDPCommunicator:
         self._yellow_sensor_sock = None  # 黄色ロボット用センサーソケット
         self._blue_sensor_sock = None   # 青色ロボット用センサーソケット
         self._command_sock = None
+        self._game_command_sock = None  # ゲームコマンド受信用ソケット
 
         self._vision_data_queue = queue.Queue()
         self._yellow_sensor_data_queue = queue.Queue()  # 黄色ロボット用キュー
         self._blue_sensor_data_queue = queue.Queue()   # 青色ロボット用キュー
+        self._game_command_queue = queue.Queue()  # ゲームコマンド用キュー
 
         self._vision_thread = None
         self._yellow_sensor_thread = None
         self._blue_sensor_thread = None
+        self._game_command_thread = None  # ゲームコマンド受信スレッド
         self._running = False  # 受信スレッド実行フラグ
 
     def init_sockets(self):
@@ -54,6 +57,14 @@ class UDPCommunicator:
                     (config.LISTEN_IP, config.BLUE_SENSOR_LISTEN_PORT))
                 print(
                     f"Blue Sensor UDP server bound to {config.LISTEN_IP}:{config.BLUE_SENSOR_LISTEN_PORT}")
+
+            # ゲームコマンド受信用
+            self._game_command_sock = socket.socket(
+                socket.AF_INET, socket.SOCK_DGRAM)
+            self._game_command_sock.bind(
+                (config.LISTEN_IP, config.GAME_COMMAND_LISTEN_PORT))
+            print(
+                f"Game Command UDP server bound to {config.LISTEN_IP}:{config.GAME_COMMAND_LISTEN_PORT}")
 
             # コマンド送信用 (bind は不要) - 送信先はIPとポートで区別
             self._command_sock = socket.socket(
@@ -89,6 +100,12 @@ class UDPCommunicator:
                 target=self._blue_sensor_receiver_thread, daemon=True)
             self._blue_sensor_thread.start()
             print("Blue Sensor UDP receiver thread started.")
+
+        if self._game_command_sock:
+            self._game_command_thread = threading.Thread(
+                target=self._game_command_receiver_thread, daemon=True)
+            self._game_command_thread.start()
+            print("Game Command UDP receiver thread started.")
 
     def stop_receiving(self):
         """受信スレッドに停止を指示する (daemon=True の場合は不要なことが多いが明示的に制御する場合)"""
@@ -159,6 +176,30 @@ class UDPCommunicator:
                     print(f"Blue Sensor receiver error from {addr}: {e}")
                 break
 
+        # ゲームコマンド受信スレッド関数
+    def _game_command_receiver_thread(self):
+        """ゲームコマンドデータを受信するスレッド関数"""
+        while self._running and self._game_command_sock:
+            try:
+                data, addr = self._game_command_sock.recvfrom(
+                    config.BUFFER_SIZE)
+                json_string = data.decode('utf-8')
+                game_command_data = json.loads(json_string)
+                self._game_command_queue.put(game_command_data)
+                # コマンド受信はログ出力
+                print(
+                    f"Game command received and queued from {addr}: {game_command_data}")
+            except (socket.timeout, socket.error):
+                if not self._running:
+                    break
+                if self._game_command_sock:
+                    print(f"Game command receiver socket error: {e}")
+            except json.JSONDecodeError:
+                print(
+                    f"Game command: Received invalid JSON from {addr}. Skipping.")
+            except Exception as e:
+                print(f"Game command receiver error from {addr}: {e}")
+
     def get_latest_vision_data(self):
         """
         キューから最新のVisionデータを全て取り出し、最後のデータを返す。
@@ -195,6 +236,17 @@ class UDPCommunicator:
         while not self._blue_sensor_data_queue.empty():
             try:
                 latest_data = self._blue_sensor_data_queue.get_nowait()
+            except queue.Empty:
+                break
+        return latest_data
+
+    # ゲームコマンドキューから最新データを取得
+    def get_latest_game_command(self):
+        """キューから最新のゲームコマンドデータを全て取り出し、最後のデータを返す。データがない場合はNoneを返す。"""
+        latest_data = None
+        while not self._game_command_queue.empty():
+            try:
+                latest_data = self._game_command_queue.get_nowait()
             except queue.Empty:
                 break
         return latest_data
@@ -252,6 +304,10 @@ class UDPCommunicator:
             self._blue_sensor_sock.close()
             self._blue_sensor_sock = None
             print("Blue Sensor UDP socket closed.")
+        if self._game_command_sock:
+            self._game_command_sock.close()
+            self._game_command_sock = None
+            print("Game Command UDP socket closed.")
         if self._command_sock:
             self._command_sock.close()
             self._command_sock = None

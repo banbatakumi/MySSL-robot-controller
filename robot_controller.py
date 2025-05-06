@@ -34,9 +34,63 @@ class RobotController:
         # 他のセンサーデータも必要に応じて追加
 
         # 制御モード ('idle', 'move_to_center', 'move_around_ball' など)
-        self.mode = 'move_around_ball'  # 初期モードをコート中心移動とする
+        self.mode = 'stop'  # 初期モードをコート中心移動とする
 
         print(f"[{self.robot_color.capitalize()} Robot Controller] Initialized.")
+
+    def handle_game_command(self, command_data):
+        """
+        外部からのゲームコマンドを処理し、ロボットの動作モードを切り替える。
+        Args:
+            command_data: 受信したゲームコマンドデータの辞書。
+                           例: {"type": "game_command", "command": "stop"}
+                           例: {"type": "game_command", "command": "place_ball", "x": 100, "y": 50}
+                           << 新規コマンド例 >>
+                           例: {"type": "game_command", "command": "start_game"}
+                           例: {"type": "game_command", "command": "emergency_stop"}
+                           コマンドによっては "robot_color" フィールドを含む。
+        """
+        cmd_type = command_data.get("type")
+        cmd = command_data.get("command")
+        target_robot_color = command_data.get("robot_color")
+
+        # コマンドに特定のロボット色が指定されており、かつそれがこのコントローラーの色でない場合は無視
+        if target_robot_color is not None and target_robot_color != self.robot_color:
+            # print(f"[{self.robot_color.capitalize()} Controller] Ignoring command '{cmd}' targeting '{target_robot_color}'.")
+            return
+
+        if cmd_type == "game_command":
+            print(
+                f"[{self.robot_color.capitalize()} Robot Controller] Processing game command: {cmd}")
+
+            if cmd == "stop_game":
+                self.mode = 'stop_game'
+                self._placement_target_pos = None  # ボール配置目標もクリア
+            elif cmd == "start_game":
+                # ゲーム開始時の動作を定義。例: ボール周回モードに移行
+                self.mode = 'start_game'
+                self._placement_target_pos = None  # 配置目標クリア
+            elif cmd == "emergency_stop":
+                # 緊急停止は何よりも優先。モードをアイドルにし、即座に停止コマンドを送信
+                print(
+                    f"[{self.robot_color.capitalize()} Robot Controller] Received EMERGENCY_STOP command.")
+                self.mode = 'stop'
+                self._placement_target_pos = None
+                self._send_stop_command()  # 受信ループとは別に即座に停止コマンドを送信
+
+            elif cmd == "place_ball":
+                # ボール配置コマンド。位置情報があれば取得し、モードを切り替え
+                target_x = command_data.get("x")
+                target_y = command_data.get("y")
+                print(
+                    f"[{self.robot_color.capitalize()} Robot Controller] Switching to move_to_placement. Target: ({target_x}, {target_y})")
+                self._placement_target_pos = [target_x, target_y]
+                self.mode = 'ball_placement'  # ボール配置移動モードへ
+
+            # 他のコマンド（例: 'prepare', 'halt'など）もここに追加
+            else:
+                print(
+                    f"[{self.robot_color.capitalize()} Robot Controller] Received unknown game command: {cmd}")
 
     def process_data_and_control(self):
         """
@@ -127,17 +181,22 @@ class RobotController:
         # --- 制御ロジック実行 ---
         # 現在のモードに基づいて制御指令を生成
         command_data = None
-        if first_orange_ball is None and self.photo_front == False:
-            command_data = self._control_move_to_pos(
-                -20, 0)
-        else:
+        if self.mode == 'stop':
+            command_data = self._send_stop_command()
+        elif self.mode == 'start_game':
             command_data = self._control_move_around_ball()
+        elif self.mode == 'stop_game':
+            command_data = self._control_move_to_pos(0, 0)
+        elif self.mode == 'ball_placement':
+            command_data = self._control_ball_placement()
+        else:
+            command_data = self._send_stop_command()
         # 必要に応じて他のモードを追加
 
         # --- 指令データの送信 ---
         if command_data:
             # 共通の基本情報をコマンドに追加
-            command_data['ts'] = int(time.time() * 1000)  # タイムスタンプ (ミリ秒)
+            # command_data['ts'] = int(time.time() * 1000)  # タイムスタンプ (ミリ秒)
             # Visionの自己位置情報はロボット側でも活用できる場合があるので送る
             command_data['cmd']['vision_angle'] = self.robot_angle
 
@@ -149,7 +208,7 @@ class RobotController:
             # 安全のため停止コマンドを送ることも検討
             pass  # この例では何もしない
 
-    def _control_move_to_pos(self, target_x, target_y):
+    def _control_move_to_pos(self, target_x, target_y, max_speed=1, face_speed=3.14, face_axis=0, dribble=False, kick=0):
         """
         ロボットをコートの中心 (0, 0) へ移動させる制御ロジック。
         Visionデータに基づいて指令を生成する。
@@ -181,9 +240,10 @@ class RobotController:
                     "move_angle": 0.0,      # 直進速度 (停止)
                     "move_speed": 0.0,    # 回転速度 (停止)
                     "face_angle": 0.0,    # Faceコマンド無効
-                    "face_axis": 0,       # Faceコマンド無効
+                    "face_speed": face_speed,
+                    "face_axis": face_axis,       # Faceコマンド無効
                     "stop": False,         # 停止フラグ
-                    "kick": False,
+                    "kick": kick,
                     "dribble": False,
                 }
             }
@@ -194,6 +254,8 @@ class RobotController:
                 config.MAX_LINEAR_SPEED_M_S,
                 config.CENTER_MOVE_LINEAR_GAIN * distance
             )
+            if speed > max_speed:
+                speed = max_speed
             # 角度を合わせながら移動する
             # `face_angle` コマンドが指定した絶対角度に向く機能を持つと仮定
             return {
@@ -201,14 +263,42 @@ class RobotController:
                     "move_angle": round(desired_court_angle, 0),
                     "move_speed": round(speed, 2),
                     "face_angle": 0,
-                    "face_axis": 0,
+                    "face_speed": face_speed,
+                    "face_axis": face_axis,
                     "stop": False,
-                    "kick": False,
-                    "dribble": False,
+                    "kick": kick,
+                    "dribble": dribble,
                 }
             }
 
-    def _control_move_around_ball(self):
+    def _control_ball_placement(self):
+        """
+        ボールを指定された位置に配置する制御ロジック。
+        ボールの位置に基づいて指令を生成する。
+
+        Returns:
+            送信するコマンドデータの辞書。
+        """
+        if self._placement_target_pos is None:
+            # 配置目標が設定されていない場合は停止
+            return
+
+        target_x, target_y = self._placement_target_pos
+
+        if (abs(self.ball_pos[0] - self._placement_target_pos[0]) < 15 and abs(self.ball_pos[1] - self._placement_target_pos[1]) < 15):
+            # ボール配置位置に近づいたら停止
+            if self.photo_front == True:
+                return self._control_move_to_pos(target_x - 10, target_y, 0.3, 1, 0, False, 10)
+            else:
+                return self._control_move_to_pos(target_x - 30, target_y, 0.5, 1, 0, False)
+
+        else:
+            if (self.photo_front == False):
+                return self._control_move_around_ball(False)
+            else:
+                return self._control_move_to_pos(target_x - 10, target_y, 0.3, 1, 1, True)
+
+    def _control_move_around_ball(self, kicker=True):
         """
         ボールの周りを移動する制御ロジック。
         ボールの位置に基づいて指令を生成する。
@@ -224,11 +314,11 @@ class RobotController:
         move_angle = 0
         move_speed = 0.7
         if (self.robot_ball_dis < 40):
-            move_speed = 0.5
+            move_speed = 0.4
 
         kick = None
         dribble = False
-        if (self.robot_ball_dis < 25 and abs(self.robot_ball_angle - self.robot_angle) < 20):
+        if (self.robot_ball_dis < 30 and abs(self.robot_ball_angle - self.robot_angle) < 30):
             dribble = True
         face_angle = self.robot_ball_angle
         face_axis = 0
@@ -246,7 +336,8 @@ class RobotController:
             face_speed = 3.14 * 0.5
             dribble = True
         if abs(self.robot_angle - target_angle) < 15:
-            kick = 100
+            if kicker == True:
+                kick = 100
             dribble = False
 
         return {
@@ -271,7 +362,7 @@ class RobotController:
                 "move_speed": 0.0,
                 "face_angle": 0.0,
                 "face_axis": 0,
-                "stop": False,
+                "stop": True,
                 "kick": False,
                 "dribble": False,
             }
