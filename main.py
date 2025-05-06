@@ -8,6 +8,7 @@ def main():
     """
     プログラムのエントリーポイント。
     UDP通信、ロボット制御の初期化とメインループを実行する。
+    複数のロボットコントローラーを管理する。
     """
     print("Starting Robot Controller Application...")
 
@@ -17,17 +18,33 @@ def main():
         print("Failed to initialize UDP communication. Exiting.")
         return
 
-    # ロボット制御クラスの初期化
-    controller = RobotController(udp_comm)
+    # ロボット制御クラスの初期化 (configで有効化されているロボットのみ)
+    controllers = []
+    if config.ENABLE_YELLOW_ROBOT:
+        yellow_controller = RobotController(udp_comm, 'yellow')
+        controllers.append(yellow_controller)
+        print("Yellow Robot Controller added.")
+
+    if config.ENABLE_BLUE_ROBOT:
+        blue_controller = RobotController(udp_comm, 'blue')
+        controllers.append(blue_controller)
+        print("Blue Robot Controller added.")
+
+    if not controllers:
+        print("No robots enabled in config. Exiting.")
+        udp_comm.close_sockets()
+        return
 
     # 受信スレッドの開始
     udp_comm.start_receiving()
 
-    print("Entering main control loop.")
+    print(
+        f"Entering main control loop with {len(controllers)} robot controller(s).")
     try:
         while True:
-            # 制御ロジックの実行（データ取得、処理、指令送信）
-            controller.process_data_and_control()
+            # 各ロボットコントローラーの制御ロジックを実行
+            for controller in controllers:
+                controller.process_data_and_control()
 
             # 制御ループのポーリング間隔
             time.sleep(config.CONTROL_LOOP_INTERVAL)
@@ -38,8 +55,9 @@ def main():
         print(f"An unexpected error occurred: {e}")
     finally:
         print("Shutting down...")
-        # ソケットを閉じる
+        # ソケットを閉じる (受信スレッドも停止される)
         udp_comm.close_sockets()
+        print("Application finished.")
         # 必要であれば他のリソース解放処理を追加
 
 
