@@ -1,5 +1,6 @@
 import time
 import math
+import lib.my_math as mymath
 import config
 
 from udp_communicator import UDPCommunicator
@@ -23,10 +24,10 @@ class RobotController:
         self.state.photo_back = None
         self.state.ball_pos = None
         self.state.robot_pos = None
-        self.state.robot_angle = None
-        self.state.robot_ball_pos = None
+        self.state.robot_dir_angle = None
+        self.state.ball_pos = None
         self.state.robot_ball_angle = None
-        self.state.robot_ball_dis = None
+        self.state.ball_dis = None
 
         self.basic_move = BasicMove(self.state)  # CatchBall クラスのインスタンス
 
@@ -105,30 +106,34 @@ class RobotController:
 
         # ロボットの位置と向きを取得
         self.state.robot_pos = robot_data.get('pos')
-        self.state.robot_angle = robot_data.get('angle')
+        self.state.robot_dir_angle = robot_data.get('angle')
 
-        if self.state.robot_pos is None or self.state.robot_angle is None:
+        if self.state.robot_pos is None or self.state.robot_dir_angle is None:
             print(
                 f"[{self.robot_color.capitalize()} Robot Controller] Incomplete vision data.")
             self._send_stop_command()
             return
         # print(
-        #     f"[{self.robot_color.capitalize()} Robot Controller] Position: {self.state.robot_pos}, Angle: {self.state.robot_angle}")
+        #     f"[{self.robot_color.capitalize()} Robot Controller] Position: {self.state.robot_pos}, Angle: {self.state.robot_dir_angle}")
 
         # ボールデータも必要に応じて取得
         orange_balls = latest_vision_data.get('orange_balls', [])
         first_orange_ball = orange_balls[0] if orange_balls else None
         if orange_balls:
-            self.state.ball_pos = first_orange_ball.get('pos')
-            self.state.robot_ball_pos = [
-                self.state.ball_pos[0] - self.state.robot_pos[0], self.state.ball_pos[1] - self.state.robot_pos[1]]
-            self.state.robot_ball_angle = math.degrees(
-                math.atan2(self.state.robot_ball_pos[1], self.state.robot_ball_pos[0])) * -1
+            self.state.court_ball_pos = first_orange_ball.get('pos')
+            self.state.ball_pos = [
+                self.state.court_ball_pos[0] - self.state.robot_pos[0], self.state.court_ball_pos[1] - self.state.robot_pos[1]]
+            self.state.ball_angle = math.degrees(
+                math.atan2(self.state.ball_pos[1], self.state.ball_pos[0])) * -1
+            self.state.robot_ball_angle = mymath.NormalizeDeg180(
+                self.state.ball_angle - self.state.robot_dir_angle)
+            self.state.ball_dis = math.hypot(
+                self.state.ball_pos[0], self.state.ball_pos[1])
+            self.state.robot_ball_pos = [self.state.ball_dis * math.sin(math.radians(self.state.robot_ball_angle)),
+                                         self.state.ball_dis * math.cos(math.radians(self.state.robot_ball_angle))]
 
-            self.state.robot_ball_dis = math.hypot(
-                self.state.robot_ball_pos[0], self.state.robot_ball_pos[1])
             # print(
-            #     f"RobotBallPos{self.state.robot_ball_pos}, RobotBallAngle: {self.state.robot_ball_angle}, RobotBallDis: {self.state.robot_ball_dis}")
+            #     f"RobotBallPos{self.state.ball_pos}, RobotBallAngle: {self.state.robot_ball_angle}, RobotBallDis: {self.state.ball_dis}")
 
         # --- センサーデータの取得と処理 ---
         latest_sensor_data = None
@@ -144,15 +149,15 @@ class RobotController:
                     "photo", {}).get("front")
                 self.state.photo_back = latest_sensor_data.get(
                     "photo", {}).get("back")
-                print(
-                    f"[{self.robot_color.capitalize()} Robot Controller] Sensor Data: Front={self.state.photo_front}, Back={self.state.photo_back}")
+                # print(
+                #     f"[{self.robot_color.capitalize()} Robot Controller] Sensor Data: Front={self.state.photo_front}, Back={self.state.photo_back}")
 
         # --- 制御ロジック実行 ---
         command_data = None
         if self.mode == 'stop':
             self._send_stop_command()
         elif self.mode == 'start_game':
-            command_data = self._control_move_around_ball()
+            command_data = self.basic_move.move_to_ball(180)
         elif self.mode == 'stop_game':
             command_data = self.basic_move.move_to_pos(0, 0)
         elif self.mode == 'ball_placement':
@@ -162,8 +167,8 @@ class RobotController:
         if command_data:
             # 共通の基本情報をコマンドに追加
             # command_data['ts'] = int(time.time() * 1000)  # タイムスタンプ (ミリ秒)
-            command_data['cmd']['vision_angle'] = self.state.robot_angle
-            command_data["cmd"]["move_angle"] -= self.state.robot_angle
+            command_data['cmd']['vision_angle'] = self.state.robot_dir_angle
+            # command_data["cmd"]["move_angle"] -= self.state.robot_dir_angle
             command_data['cmd']['stop'] = False
 
             # print(f"[{self.robot_color.capitalize()} Robot Controller] Generated Command: {command_data}") # デバッグ用
@@ -175,7 +180,7 @@ class RobotController:
     def _control_ball_placement(self):
         target_x, target_y = self._placement_target_pos
 
-        if (abs(self.state.ball_pos[0] - self._placement_target_pos[0]) < 15 and abs(self.state.ball_pos[1] - self._placement_target_pos[1]) < 15):
+        if (abs(self.state.court_ball_pos[0] - self._placement_target_pos[0]) < 15 and abs(self.state.court_ball_pos[1] - self._placement_target_pos[1]) < 15):
             if self.state.photo_front == True:
                 cmd = self.basic_move.move_to_pos(
                     target_x - config.ROBOT_R, target_y)
@@ -201,13 +206,13 @@ class RobotController:
         if (self.state.photo_front == True):
             face_angle = target_angle
             face_axis = 1
-            if abs(self.state.robot_angle - target_angle) < 30:
+            if abs(self.state.robot_dir_angle - target_angle) < 30:
                 face_speed = 3.14 * 0.25
             face_speed = 3.14 * 0.5
             dribble = 50
             kick = None
 
-            if abs(self.state.robot_angle - target_angle) < 15:
+            if abs(self.state.robot_dir_angle - target_angle) < 15:
                 kick = 100
                 dribble = 0
             return {
