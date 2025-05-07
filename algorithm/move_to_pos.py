@@ -2,10 +2,7 @@ import math
 import config
 
 
-def move_to_pos(robot_pos, target_pos, max_speed=1, face_speed=3.14, face_axis=0, dribble=False, kick=0):
-    """
-    ロボットを指定された位置に移動させるための制御指令を生成する。
-    """
+def move_to_pos(robot_pos, target_pos, max_speed=1, face_speed=6.28, face_axis=0, dribble=0, kick=0):
     # 目標までのベクトル
     vector = [target_pos[0] - robot_pos[0], target_pos[1] - robot_pos[1]]
 
@@ -25,6 +22,7 @@ def move_to_pos(robot_pos, target_pos, max_speed=1, face_speed=3.14, face_axis=0
         "cmd": {
             "move_angle": round(desired_court_angle, 0),
             "move_speed": round(speed, 2),
+            "move_acce": 5,
             "face_angle": 0,
             "face_speed": face_speed,
             "face_axis": face_axis,

@@ -4,6 +4,7 @@ import config  # config.py から設定を読み込む
 
 from udp_communicator import UDPCommunicator
 from algorithm.move_to_pos import move_to_pos
+from algorithm.catch_ball import catch_ball
 
 
 class RobotController:
@@ -158,7 +159,6 @@ class RobotController:
             command_data = self._control_ball_placement()
         else:
             command_data = self._send_stop_command()
-        # 必要に応じて他のモードを追加
 
         # --- 指令データの送信 ---
         if command_data:
@@ -175,77 +175,7 @@ class RobotController:
             # 安全のため停止コマンドを送ることも検討
             pass  # この例では何もしない
 
-    def _control_move_to_pos(self, target_x, target_y, max_speed=1, face_speed=3.14, face_axis=0, dribble=False, kick=0):
-        """
-        ロボットをコートの中心 (0, 0) へ移動させる制御ロジック。
-        Visionデータに基づいて指令を生成する。
-        Args:
-            robot_pos_cm: ロボットの現在位置 [x, y] (cm)
-            robot_angle: ロボットの現在の向き (deg)
-
-        Returns:
-            送信するコマンドデータの辞書。移動完了時は停止コマンドを含む。
-        """
-
-        # 目標までのベクトル
-        dx = target_x - self.robot_pos[0]
-        dy = target_y - self.robot_pos[1]
-
-        # 目標までの距離
-        distance = math.hypot(dx, dy)  # math.sqrt(dx*dx + dy*dy)
-
-        # 目標とする移動方向 (コート座標系での角度)
-        # 角度は+X軸基準(右方向)で反時計回りが正。
-        desired_court_angle = math.degrees(math.atan2(dy, dx)) * -1
-
-        # 目標までの距離が閾値以下なら停止
-        if distance < config.CENTER_MOVE_DISTANCE_THRESHOLD:
-            print(
-                f"[{self.robot_color.capitalize()} Robot Controller] Reached center.")
-            return {
-                "cmd": {
-                    "move_angle": 0.0,      # 直進速度 (停止)
-                    "move_speed": 0.0,    # 回転速度 (停止)
-                    "face_angle": 0.0,    # Faceコマンド無効
-                    "face_speed": face_speed,
-                    "face_axis": face_axis,       # Faceコマンド無効
-                    "stop": False,         # 停止フラグ
-                    "kick": kick,
-                    "dribble": False,
-                }
-            }
-        else:
-            # 目標距離に応じた速度を計算
-            # 線形に速度を上げ、最大速度でクリップ
-            speed = min(
-                config.MAX_LINEAR_SPEED_M_S,
-                config.CENTER_MOVE_LINEAR_GAIN * distance
-            )
-            if speed > max_speed:
-                speed = max_speed
-            # 角度を合わせながら移動する
-            # `face_angle` コマンドが指定した絶対角度に向く機能を持つと仮定
-            return {
-                "cmd": {
-                    "move_angle": round(desired_court_angle, 0),
-                    "move_speed": round(speed, 2),
-                    "face_angle": 0,
-                    "face_speed": face_speed,
-                    "face_axis": face_axis,
-                    "stop": False,
-                    "kick": kick,
-                    "dribble": dribble,
-                }
-            }
-
     def _control_ball_placement(self):
-        """
-        ボールを指定された位置に配置する制御ロジック。
-        ボールの位置に基づいて指令を生成する。
-
-        Returns:
-            送信するコマンドデータの辞書。
-        """
         if self._placement_target_pos is None:
             # 配置目標が設定されていない場合は停止
             return
@@ -255,70 +185,47 @@ class RobotController:
         if (abs(self.ball_pos[0] - self._placement_target_pos[0]) < 15 and abs(self.ball_pos[1] - self._placement_target_pos[1]) < 15):
             # ボール配置位置に近づいたら停止
             if self.photo_front == True:
-                return self._control_move_to_pos(target_x - 10, target_y, 0.3, 1, 0, False, 10)
+                return move_to_pos(self.robot_pos, [target_x - 10, target_y], 0.3, 1, 0, 0, 10)
             else:
-                return self._control_move_to_pos(target_x - 30, target_y, 0.5, 1, 0, False)
+                return move_to_pos(self.robot_pos, [target_x - 30, target_y], 0.5, 1, 0, 0)
 
         else:
             if (self.photo_front == False):
-                return self._control_move_around_ball(False)
+                return catch_ball(self.robot_angle, self.robot_ball_angle, self.robot_ball_dis)
             else:
-                return self._control_move_to_pos(target_x - 10, target_y, 0.3, 1, 1, True)
+                return move_to_pos(self.robot_pos, [target_x - 10, target_y], 0.3, 1.5, 1, 100)
 
-    def _control_move_around_ball(self, kicker=True):
-        """
-        ボールの周りを移動する制御ロジック。
-        ボールの位置に基づいて指令を生成する。
-
-        Returns:
-            送信するコマンドデータの辞書。
-        """
-        if self.robot_ball_dis is None or self.robot_ball_angle is None:
-            # ボールデータが不完全な場合は停止
-            return
-
-        # ボールの周りを回るための角度と速度を計算
-        move_angle = 0
-        move_speed = 0.7
-        if (self.robot_ball_dis < 40):
-            move_speed = 0.4
-
-        kick = None
-        dribble = False
-        if (self.robot_ball_dis < 30 and abs(self.robot_ball_angle - self.robot_angle) < 30):
-            dribble = True
-        face_angle = self.robot_ball_angle
-        face_axis = 0
-        face_speed = 3.14 * 1.5
-
+    def _control_move_around_ball(self):
         target_pos = [100 - self.robot_pos[0], 0 - self.robot_pos[1]]
         target_angle = math.degrees(math.atan2(
             target_pos[1], target_pos[0])) * -1
         if (self.photo_front == True):
-            move_speed = 0
             face_angle = target_angle
             face_axis = 1
             if abs(self.robot_angle - target_angle) < 30:
                 face_speed = 3.14 * 0.25
             face_speed = 3.14 * 0.5
-            dribble = True
-        if abs(self.robot_angle - target_angle) < 15:
-            if kicker == True:
-                kick = 100
-            dribble = False
+            dribble = 50
+            kick = None
 
-        return {
-            "cmd": {
-                "move_angle": round(move_angle, 0),
-                "move_speed": round(move_speed, 2),
-                "face_angle": face_angle,
-                "face_axis": face_axis,
-                "face_speed": face_speed,
-                "stop": False,
-                "kick": kick,
-                "dribble": dribble,
+            if abs(self.robot_angle - target_angle) < 15:
+                kick = 100
+                dribble = 0
+            return {
+                "cmd": {
+                    "move_angle": 0,
+                    "move_speed": 0,
+                    "move_acce": 1,
+                    "face_angle": face_angle,
+                    "face_axis": face_axis,
+                    "face_speed": face_speed,
+                    "stop": False,
+                    "kick": kick,
+                    "dribble": dribble,
+                }
             }
-        }
+        else:
+            return catch_ball(self.robot_angle, self.robot_ball_angle, self.robot_ball_dis)
 
     def _send_stop_command(self):
         """安全のため、停止コマンドを送信するヘルパーメソッド"""
@@ -327,6 +234,7 @@ class RobotController:
             "cmd": {
                 "move_angle": 0.0,
                 "move_speed": 0.0,
+                "move_acce": 0,
                 "face_angle": 0.0,
                 "face_axis": 0,
                 "stop": True,
