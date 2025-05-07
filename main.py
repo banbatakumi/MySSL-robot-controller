@@ -20,6 +20,8 @@ def main():
 
     # ロボット制御クラスの初期化 (configで有効化されているロボットのみ)
     controllers = []
+    yellow_controller = None  # 後でゲームコマンド処理で参照するため変数として保持
+    blue_controller = None   # 同様
     if config.ENABLE_YELLOW_ROBOT:
         yellow_controller = RobotController(udp_comm, 'yellow')
         controllers.append(yellow_controller)
@@ -42,7 +44,48 @@ def main():
         f"Entering main control loop with {len(controllers)} robot controller(s).")
     try:
         while True:
-            # 各ロボットコントローラーの制御ロジックを実行
+            game_command_data = udp_comm.get_latest_game_command()
+            if game_command_data:
+                # コマンドの内容に応じて処理を分岐
+                cmd_type = game_command_data.get("type")
+                cmd = game_command_data.get("command")
+                target_robot_color = game_command_data.get("robot_color")
+
+                if cmd_type == "game_command":
+                    # print(f"Processing game command: {cmd} (Target: {target_robot_color})") # デバッグ用ログ
+
+                    # 緊急停止は全てのロボットに伝える
+                    if cmd == "emergency_stop":
+                        print(
+                            "Emergency Stop command received! Broadcasting to all controllers.")
+                        for controller in controllers:
+                            controller.handle_game_command(game_command_data)
+                    elif cmd == "start_game":
+                        print(
+                            "Start Game command received! Broadcasting to all controllers.")
+                        for controller in controllers:
+                            controller.handle_game_command(game_command_data)
+                    elif cmd == "stop_game":
+                        print(
+                            "Stop Game command received! Broadcasting to all controllers.")
+                        for controller in controllers:
+                            controller.handle_game_command(game_command_data)
+                    else:
+                        if target_robot_color in ('yellow', 'blue'):
+                            if target_robot_color == 'yellow' and yellow_controller:
+                                yellow_controller.handle_game_command(
+                                    game_command_data)
+                            elif target_robot_color == 'blue' and blue_controller:
+                                blue_controller.handle_game_command(
+                                    game_command_data)
+                            else:
+                                print(
+                                    f"Target robot '{target_robot_color}' for command '{cmd}' not found or not enabled.")
+                        else:
+                            print(
+                                f"Received command '{cmd}' without valid target_robot_color.")
+
+            # --- 各ロボットコントローラーの制御ロジック実行 ---
             for controller in controllers:
                 controller.process_data_and_control()
 
