@@ -37,4 +37,7 @@ CONTROL_LOOP_INTERVAL = 0.01  # 10ms
 # コート中心への移動時の閾値とゲイン
 CENTER_MOVE_DISTANCE_THRESHOLD = 5  # この距離以内なら停止
 CENTER_MOVE_LINEAR_GAIN = 0.02         # 線形速度ゲイン
-MAX_LINEAR_SPEED_M_S = 1        # 最大線形速度 cm/s
+MAX_LINEAR_SPEED_M_S = 1        # 最大線形速度 m/s
+
+COURT_WIDTH = 150  # cm
+COURT_HEIGHT = 100  # cm

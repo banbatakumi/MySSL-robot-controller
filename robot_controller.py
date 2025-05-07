@@ -1,6 +1,6 @@
 import time
 import math
-import config  # config.py から設定を読み込む
+import config
 
 from udp_communicator import UDPCommunicator
 from algorithm.move_to_pos import move_to_pos
@@ -56,14 +56,11 @@ class RobotController:
                 self.mode = 'stop'
                 self._placement_target_pos = None
                 self._send_stop_command()  # 受信ループとは別に即座に停止コマンドを送信
-
             elif cmd == "place_ball":
                 target_x = command_data.get("x")
                 target_y = command_data.get("y")
                 self._placement_target_pos = [target_x, target_y]
                 self.mode = 'ball_placement'  # ボール配置移動モードへ
-
-            # 他のコマンド（例: 'prepare', 'halt'など）もここに追加
             else:
                 print(
                     f"[{self.robot_color.capitalize()} Robot Controller] Received unknown game command: {cmd}")
@@ -147,53 +144,51 @@ class RobotController:
                     f"[{self.robot_color.capitalize()} Robot Controller] Sensor Data: Front={self.photo_front}, Back={self.photo_back}")
 
         # --- 制御ロジック実行 ---
-        # 現在のモードに基づいて制御指令を生成
         command_data = None
         if self.mode == 'stop':
-            command_data = self._send_stop_command()
+            self._send_stop_command()
         elif self.mode == 'start_game':
             command_data = self._control_move_around_ball()
         elif self.mode == 'stop_game':
             command_data = move_to_pos(self.robot_pos, [0, 0])
         elif self.mode == 'ball_placement':
             command_data = self._control_ball_placement()
-        else:
-            command_data = self._send_stop_command()
 
         # --- 指令データの送信 ---
         if command_data:
             # 共通の基本情報をコマンドに追加
             # command_data['ts'] = int(time.time() * 1000)  # タイムスタンプ (ミリ秒)
-            # Visionの自己位置情報はロボット側でも活用できる場合があるので送る
             command_data['cmd']['vision_angle'] = self.robot_angle
+            command_data["cmd"]["move_angle"] -= self.robot_angle
+            command_data['cmd']['stop'] = False
 
             # print(f"[{self.robot_color.capitalize()} Robot Controller] Generated Command: {command_data}") # デバッグ用
 
             self.udp.send_command(command_data, self.robot_color)
         else:
-            # どのモードでも有効なコマンドを生成しなかった場合（例: モードが'idle'など）
-            # 安全のため停止コマンドを送ることも検討
-            pass  # この例では何もしない
+            pass
 
     def _control_ball_placement(self):
-        if self._placement_target_pos is None:
-            # 配置目標が設定されていない場合は停止
-            return
-
         target_x, target_y = self._placement_target_pos
 
         if (abs(self.ball_pos[0] - self._placement_target_pos[0]) < 15 and abs(self.ball_pos[1] - self._placement_target_pos[1]) < 15):
-            # ボール配置位置に近づいたら停止
             if self.photo_front == True:
-                return move_to_pos(self.robot_pos, [target_x - 10, target_y], 0.3, 1, 0, 0, 10)
+                cmd = move_to_pos(
+                    self.robot_pos, [target_x - 10, target_y], self.photo_front)
+                cmd['cmd']['kick'] = 10
+                cmd['cmd']['dribble'] = 30
+                return cmd
             else:
-                return move_to_pos(self.robot_pos, [target_x - 30, target_y], 0.5, 1, 0, 0)
+                cmd = move_to_pos(
+                    self.robot_pos, [target_x - 30, target_y], self.photo_front)
+                cmd['cmd']['kick'] = 0
+                return cmd
 
         else:
             if (self.photo_front == False):
                 return catch_ball(self.robot_angle, self.robot_ball_angle, self.robot_ball_dis)
             else:
-                return move_to_pos(self.robot_pos, [target_x - 10, target_y], 0.3, 1.5, 1, 100)
+                return move_to_pos(self.robot_pos, [target_x - 10, target_y], self.photo_front)
 
     def _control_move_around_ball(self):
         target_pos = [100 - self.robot_pos[0], 0 - self.robot_pos[1]]
