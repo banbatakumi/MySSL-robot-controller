@@ -30,8 +30,6 @@ class BasicMove:
         if self.state.ball_dis < 40 and mymath.GapDeg(self.state.ball_angle, self.state.robot_dir_angle) < 30:
             dribble = 50
 
-        print(mymath.GapDeg(self.state.ball_angle, self.state.robot_dir_angle))
-
         return {
             "cmd": {
                 "move_angle": 0,
@@ -57,14 +55,14 @@ class BasicMove:
         # 目標とする移動方向 (コート座標系での角度)
         move_angle = math.degrees(math.atan2(vector[1], vector[0])) * -1
 
-        move_acce = 1
+        move_acce = 3
         move_max_speed = config.MAX_SPEED
         face_speed = 0
         face_axis = 0
         dribble = 0
         if self.state.photo_front == True:
             move_max_speed = 0.5
-            move_acce = 0.1
+            move_acce = 1
             face_speed = mymath.HALF_PI
             face_axis = 1
             dribble = 100
@@ -118,7 +116,7 @@ class BasicMove:
             "cmd": {
                 "move_angle": round(move_angle, 0),
                 "move_speed": round(speed, 2),
-                "move_acce": 1,
+                "move_acce": 3,
                 "face_angle": angle,
                 "face_speed": mymath.PI,
                 "face_axis": 0,

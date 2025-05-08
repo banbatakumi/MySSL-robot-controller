@@ -86,8 +86,10 @@ def main():
                                 f"Received command '{cmd}' without valid target_robot_color.")
 
             # --- 各ロボットコントローラーの制御ロジック実行 ---
+            vision_data = udp_comm.get_latest_vision_data()
+            print(f"Vision data: {vision_data}")
             for controller in controllers:
-                controller.process_data_and_control()
+                controller.process_data_and_control(vision_data)
 
             # 制御ループのポーリング間隔
             time.sleep(config.CONTROL_LOOP_INTERVAL)

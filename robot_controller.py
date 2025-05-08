@@ -65,7 +65,7 @@ class RobotController:
                 print(
                     f"[{self.robot_color.capitalize()} Robot Controller] Received unknown game command: {cmd}")
 
-    def process_data_and_control(self):
+    def process_data_and_control(self, vision_data):
         """
         Visionデータとセンサーデータを取得し、制御ロジックを実行し、指令を送信する。
         このメソッドはメインループから定期的に呼び出されることを想定。
@@ -76,25 +76,20 @@ class RobotController:
         if self.robot_color == 'blue' and not config.ENABLE_BLUE_ROBOT:
             return
 
-        # --- Vision データの取得 ---
-        latest_vision_data = self.udp.get_latest_vision_data()
-        # print(
-        #     f"[{self.robot_color.capitalize()} Robot Controller] Latest Vision Data: {latest_vision_data}")
-
-        if not latest_vision_data:
+        if not vision_data:
             return
 
         # --- 担当ロボットのVisionデータを見つける ---
         robot_data = None
         if self.robot_color == 'yellow':
-            yellow_robots = latest_vision_data.get('yellow_robots', [])
+            yellow_robots = vision_data.get('yellow_robots', [])
             robot_data = yellow_robots[0] if yellow_robots else None
         elif self.robot_color == 'blue':
-            blue_robots = latest_vision_data.get('blue_robots', [])
+            blue_robots = vision_data.get('blue_robots', [])
             robot_data = blue_robots[0] if blue_robots else None
 
         # ボールデータも必要に応じて取得
-        orange_balls = latest_vision_data.get('orange_balls', [])
+        orange_balls = vision_data.get('orange_balls', [])
         ball_data = orange_balls[0] if orange_balls else None
 
         # 状態を更新
@@ -120,6 +115,11 @@ class RobotController:
                     "photo", {}).get("front")
                 self.state.photo_back = latest_sensor_data.get(
                     "photo", {}).get("back")
+                # print(
+                #     f"[{self.robot_color.capitalize()} Robot Controller] Sensor Data: {latest_sensor_data}")
+
+        if self.mode != 'stop' and self.state.court_ball_pos is None:
+            return
 
         # --- 制御ロジック実行 ---
         command_data = None
@@ -130,7 +130,7 @@ class RobotController:
         elif self.mode == 'stop_game':
             # command_data = self.basic_move.move_to_ball(
             #     mymath.NormalizeDeg180(self.state.ball_court_center_angle + 180))
-            command_data = self.basic_move.move_to_pos(0, 0)
+            command_data = self.basic_move.move_to_pos(-30, 0)
         elif self.mode == 'ball_placement':
             command_data = self.ball_placement(self._placement_target_pos[0],
                                                self._placement_target_pos[1])
@@ -140,7 +140,6 @@ class RobotController:
             # 共通の基本情報をコマンドに追加
             # command_data['ts'] = int(time.time() * 1000)  # タイムスタンプ (ミリ秒)
             command_data['cmd']['vision_angle'] = self.state.robot_dir_angle
-            # command_data["cmd"]["move_angle"] -= self.state.robot_dir_angle
             command_data['cmd']['stop'] = False
 
             # print(f"[{self.robot_color.capitalize()} Robot Controller] Generated Command: {command_data}") # デバッグ用
@@ -170,7 +169,7 @@ class RobotController:
                 "cmd": {
                     "move_angle": 0,
                     "move_speed": 0,
-                    "move_acce": 1,
+                    "move_acce": 5,
                     "face_angle": face_angle,
                     "face_axis": face_axis,
                     "face_speed": face_speed,

@@ -261,12 +261,14 @@ class UDPCommunicator:
             return
 
         target_ip = None
-        target_port = config.COMMAND_SEND_PORT  # 送信ポートは共通とする想定
+        target_port = None
 
         if robot_color == 'yellow' and config.ENABLE_YELLOW_ROBOT:
             target_ip = config.YELLOW_ROBOT_IP
+            target_port = config.YELLOW_SEND_PORT
         elif robot_color == 'blue' and config.ENABLE_BLUE_ROBOT:
             target_ip = config.BLUE_ROBOT_IP
+            target_port = config.BLUE_SEND_PORT
         else:
             # print(f"Command send skipped: Robot color '{robot_color}' is not enabled.") # 頻繁に出る場合はコメントアウト
             return  # 指定された色のロボットが無効なら送信しない

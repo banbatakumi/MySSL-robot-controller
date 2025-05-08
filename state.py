@@ -29,7 +29,7 @@ class State:
         self.robot_pos = robot_data.get('pos') if robot_data else None
         self.robot_dir_angle = robot_data.get('angle') if robot_data else None
 
-        if self.robot_pos and self.robot_dir_angle:
+        if self.robot_pos is not None and self.robot_dir_angle is not None:
             # ロボットのコート中心からの角度と距離を計算
             self.robot_court_center_angle = mymath.NormalizeDeg180(
                 math.degrees(math.atan2(
@@ -44,7 +44,7 @@ class State:
         # ボールの位置を更新
         self.court_ball_pos = ball_data.get('pos') if ball_data else None
 
-        if self.court_ball_pos and self.robot_pos and self.robot_dir_angle:
+        if self.court_ball_pos is not None and self.robot_pos is not None and self.robot_dir_angle is not None:
             # ロボットを基準としたボールの相対座標を計算
             self.ball_pos = [
                 self.court_ball_pos[0] - self.robot_pos[0],
