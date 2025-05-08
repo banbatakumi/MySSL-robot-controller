@@ -1,32 +1,26 @@
 import config
-import math
 
 
 class BallPlacement:
-    def __init__(self, state):
+    def __init__(self, state, basic_move):
         self.state = state
+        self.basic_move = basic_move
 
-    def catch_ball(self):
-        robot_dir_angle = self.state.robot_dir_angle
-        robot_ball_angle = self.state.robot_ball_angle
-        ball_dis = self.state.ball_dis
+    def ball_placement(self, target_x, target_y):
+        if (abs(self.state.court_ball_pos[0] - target_x) < config.PLACEMENT_R and abs(self.state.court_ball_pos[1] - target_y) < config.PLACEMENT_R):
+            if self.state.photo_front == True:
+                cmd = self.basic_move.move_to_pos(
+                    target_x - config.ROBOT_R, target_y)
+                cmd['cmd']['kick'] = 10
+                cmd['cmd']['dribble'] = 30
+                return cmd
+            else:
+                cmd = self.basic_move.move_to_pos(target_x - 30, target_y)
+                cmd['cmd']['kick'] = 0
+                return cmd
 
-        move_speed = min(config.MAX_SPEED, ball_dis * 0.01)
-        move_speed = max(0.4, move_speed)
-        dribble = 0
-        if ball_dis < 40 and abs(robot_ball_angle - robot_dir_angle) < 30:
-            dribble = 50
-
-        return {
-            "cmd": {
-                "move_angle": round(robot_ball_angle, 0),
-                "move_speed": round(move_speed, 2),
-                "move_acce": 1,
-                "face_angle": robot_ball_angle,
-                "face_speed": 0,
-                "face_axis": 0,
-                "stop": False,
-                "kick": 0,
-                "dribble": dribble,
-            }
-        }
+        else:
+            if (self.state.photo_front == False):
+                return self.basic_move.catch_ball()
+            else:
+                return self.basic_move.move_to_pos(target_x - config.ROBOT_R, target_y)
