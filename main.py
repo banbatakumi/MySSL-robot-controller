@@ -1,6 +1,6 @@
 import time
 import config  # config.py から設定を読み込む
-from udp_communicator import UDPCommunicator
+from lib.udp_communicator import UDPCommunicator
 from robot_controller import RobotController
 
 

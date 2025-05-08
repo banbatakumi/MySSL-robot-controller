@@ -3,7 +3,7 @@ import math
 import lib.my_math as mymath
 import config
 
-from udp_communicator import UDPCommunicator
+from lib.udp_communicator import UDPCommunicator
 
 from state import State
 from algorithm.basic_move import BasicMove
