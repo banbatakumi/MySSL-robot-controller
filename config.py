@@ -30,7 +30,8 @@ BUFFER_SIZE = 65536
 CONTROL_LOOP_INTERVAL = 0.01  # 10ms
 
 # コート中心への移動時の閾値とゲイン
-MAX_SPEED = 0.5        # 最大線形速度 m/s
+MAX_SPEED = 1        # 最大線形速度 m/s
+PLACEMENT_R = 10  # cm
 
 COURT_WIDTH = 150  # cm
 COURT_HEIGHT = 100  # cm

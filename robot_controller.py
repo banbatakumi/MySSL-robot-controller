@@ -7,6 +7,7 @@ from udp_communicator import UDPCommunicator
 
 from state import State
 from algorithm.basic_move import BasicMove
+from algorithm.ball_placement import BallPlacement
 
 
 class RobotController:
@@ -18,20 +19,14 @@ class RobotController:
     def __init__(self, udp_communicator: UDPCommunicator, robot_color: str):
         self.udp = udp_communicator
         self.robot_color = robot_color.lower()
+        self.mode = 'stop'
+
         self.state = State()  # ロボットの状態を管理するインスタンス
 
-        self.state.photo_front = None
-        self.state.photo_back = None
-        self.state.ball_pos = None
-        self.state.robot_pos = None
-        self.state.robot_dir_angle = None
-        self.state.ball_pos = None
-        self.state.robot_ball_angle = None
-        self.state.ball_dis = None
-
-        self.basic_move = BasicMove(self.state)  # CatchBall クラスのインスタンス
-
-        self.mode = 'stop'
+        self.basic_move = BasicMove(self.state)
+        self.ball_placement = BallPlacement(
+            self.state, self.basic_move)  # エイリアスを作成
+        self.ball_placement = self.ball_placement.ball_placement
 
         print(
             f"[{self.robot_color.capitalize()} Robot Controller] Initialized.")
@@ -65,7 +60,7 @@ class RobotController:
                 target_x = command_data.get("x")
                 target_y = command_data.get("y")
                 self._placement_target_pos = [target_x, target_y]
-                self.mode = 'ball_placement'  # ボール配置移動モードへ
+                self.mode = 'ball_placement'
             else:
                 print(
                     f"[{self.robot_color.capitalize()} Robot Controller] Received unknown game command: {cmd}")
@@ -98,42 +93,18 @@ class RobotController:
             blue_robots = latest_vision_data.get('blue_robots', [])
             robot_data = blue_robots[0] if blue_robots else None
 
-        if not robot_data:
-            print(
-                f"[{self.robot_color.capitalize()} Robot Controller] Own vision data not found.")
-            self._send_stop_command()
-            return
+        # ボールデータも必要に応じて取得
+        orange_balls = latest_vision_data.get('orange_balls', [])
+        ball_data = orange_balls[0] if orange_balls else None
 
-        # ロボットの位置と向きを取得
-        self.state.robot_pos = robot_data.get('pos')
-        self.state.robot_dir_angle = robot_data.get('angle')
+        # 状態を更新
+        self.state.update(robot_data, ball_data)
 
         if self.state.robot_pos is None or self.state.robot_dir_angle is None:
             print(
                 f"[{self.robot_color.capitalize()} Robot Controller] Incomplete vision data.")
             self._send_stop_command()
             return
-        # print(
-        #     f"[{self.robot_color.capitalize()} Robot Controller] Position: {self.state.robot_pos}, Angle: {self.state.robot_dir_angle}")
-
-        # ボールデータも必要に応じて取得
-        orange_balls = latest_vision_data.get('orange_balls', [])
-        first_orange_ball = orange_balls[0] if orange_balls else None
-        if orange_balls:
-            self.state.court_ball_pos = first_orange_ball.get('pos')
-            self.state.ball_pos = [
-                self.state.court_ball_pos[0] - self.state.robot_pos[0], self.state.court_ball_pos[1] - self.state.robot_pos[1]]
-            self.state.ball_angle = math.degrees(
-                math.atan2(self.state.ball_pos[1], self.state.ball_pos[0])) * -1
-            self.state.robot_ball_angle = mymath.NormalizeDeg180(
-                self.state.ball_angle - self.state.robot_dir_angle)
-            self.state.ball_dis = math.hypot(
-                self.state.ball_pos[0], self.state.ball_pos[1])
-            self.state.robot_ball_pos = [self.state.ball_dis * math.sin(math.radians(self.state.robot_ball_angle)),
-                                         self.state.ball_dis * math.cos(math.radians(self.state.robot_ball_angle))]
-
-            # print(
-            #     f"RobotBallPos{self.state.ball_pos}, RobotBallAngle: {self.state.robot_ball_angle}, RobotBallDis: {self.state.ball_dis}")
 
         # --- センサーデータの取得と処理 ---
         latest_sensor_data = None
@@ -144,24 +115,25 @@ class RobotController:
 
         if latest_sensor_data:
             if latest_sensor_data.get("type") == "sensor_data":
-                # 自分のインスタンスのセンサーデータを更新
+                # センサーデータを更新
                 self.state.photo_front = latest_sensor_data.get(
                     "photo", {}).get("front")
                 self.state.photo_back = latest_sensor_data.get(
                     "photo", {}).get("back")
-                # print(
-                #     f"[{self.robot_color.capitalize()} Robot Controller] Sensor Data: Front={self.state.photo_front}, Back={self.state.photo_back}")
 
         # --- 制御ロジック実行 ---
         command_data = None
         if self.mode == 'stop':
             self._send_stop_command()
         elif self.mode == 'start_game':
-            command_data = self.basic_move.move_to_ball(180)
+            command_data = self.basic_move.move_to_ball(0)
         elif self.mode == 'stop_game':
+            # command_data = self.basic_move.move_to_ball(
+            #     mymath.NormalizeDeg180(self.state.ball_court_center_angle + 180))
             command_data = self.basic_move.move_to_pos(0, 0)
         elif self.mode == 'ball_placement':
-            command_data = self._control_ball_placement()
+            command_data = self.ball_placement(self._placement_target_pos[0],
+                                               self._placement_target_pos[1])
 
         # --- 指令データの送信 ---
         if command_data:
@@ -176,27 +148,6 @@ class RobotController:
             self.udp.send_command(command_data, self.robot_color)
         else:
             pass
-
-    def _control_ball_placement(self):
-        target_x, target_y = self._placement_target_pos
-
-        if (abs(self.state.court_ball_pos[0] - self._placement_target_pos[0]) < 15 and abs(self.state.court_ball_pos[1] - self._placement_target_pos[1]) < 15):
-            if self.state.photo_front == True:
-                cmd = self.basic_move.move_to_pos(
-                    target_x - config.ROBOT_R, target_y)
-                cmd['cmd']['kick'] = 10
-                cmd['cmd']['dribble'] = 30
-                return cmd
-            else:
-                cmd = self.basic_move.move_to_pos(target_x - 30, target_y)
-                cmd['cmd']['kick'] = 0
-                return cmd
-
-        else:
-            if (self.state.photo_front == False):
-                return self.basic_move.catch_ball()
-            else:
-                return self.basic_move.move_to_pos(target_x - config.ROBOT_R, target_y)
 
     def _control_move_around_ball(self):
         target_pos = [100 - self.state.robot_pos[0],
