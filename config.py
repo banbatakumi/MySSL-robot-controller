@@ -2,29 +2,11 @@
 # Vision からの受信ポート
 VISION_LISTEN_PORT = 50007
 
-# ESP32 への送信ポート
-YELLOW_SEND_PORT = 50008
-BLUE_SEND_PORT = 50012
-
-# ESP32 からの受信ポート
-YELLOW_SENSOR_LISTEN_PORT = 50009  # 黄ロボット用のセンサー受信ポート
-BLUE_SENSOR_LISTEN_PORT = 50010  # 青ロボット用のセンサー受信ポート
-
 # ゲームコントローラーからのコマンド受信ポート
 GAME_COMMAND_LISTEN_PORT = 50011
 
 # 待ち受けIPアドレス: 通常は '0.0.0.0'
 LISTEN_IP = "0.0.0.0"
-
-# ロボットのローカル IP アドレス
-YELLOW_ROBOT_IP = "127.0.0.1"
-# YELLOW_ROBOT_IP = "192.168.50.107"
-# BLUE_ROBOT_IP = "192.168.50.108"
-BLUE_ROBOT_IP = "127.0.0.1"
-
-# 有効にするロボットの設定 (True/False で切り替え)
-ENABLE_YELLOW_ROBOT = True
-ENABLE_BLUE_ROBOT = False  # 必要に応じて True に変更
 
 # 受信バッファサイズ
 BUFFER_SIZE = 65536
@@ -40,3 +22,35 @@ COURT_WIDTH = 150  # cm
 COURT_HEIGHT = 100  # cm
 
 ROBOT_R = 9
+
+# チームカラー (ゲームコマンドのターゲット指定などで利用)
+TEAM_COLOR = 'yellow'  # 'yellow' or 'blue'
+
+# ロボットごとの設定
+# id: ユニークな整数ID
+# name: ロボットの識別名 (例: "yellow", "blue", "robot_A")。ゲームコマンドの "robot_color" と照合される想定。
+# ip: ロボットのIPアドレス
+# send_port: このPCからロボットへコマンドを送信する際の、ロボット側の待ち受けポート
+# listen_port: このPCがロボットからのセンサーデータを受信するポート
+# enabled: このロボット設定を有効にするか
+ROBOTS_CONFIG = [
+    {
+        "id": 0,
+        "ip": "127.0.0.1",  # 以前の ROBOT_0_ROBOT_IP
+        # "ip": "192.168.50.107",
+        "send_port": 50008,  # 以前の ROBOT_0_SEND_PORT
+        "listen_port": 50009,  # 以前の ROBOT_0_SENSOR_LISTEN_PORT
+        "enabled": True
+    },
+    {
+        "id": 1,
+        "ip": "127.0.0.1",  # 以前の ROBOT_1_ROBOT_IP
+        # "ip": "192.168.50.108",
+        "send_port": 50012,  # 以前の ROBOT_1_SEND_PORT
+        "listen_port": 50010,  # 以前の ROBOT_1_SENSOR_LISTEN_PORT
+        "enabled": True
+    },
+]
+
+# ソケットタイムアウト設定 (秒)
+SOCKET_TIMEOUT = 1.0

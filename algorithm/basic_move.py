@@ -62,6 +62,8 @@ class BasicMove:
         dribble = 0
         if self.state.photo_front == True:
             move_max_speed = 0.5
+            if (mymath.GapDeg(0, self.state.robot_dir_angle) > 20):
+                move_max_speed = 0
             move_acce = 1
             face_speed = mymath.HALF_PI
             face_axis = 1

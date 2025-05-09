@@ -16,9 +16,9 @@ class RobotController:
     特定のロボット (黄色 or 青色) の制御を担当する。
     """
 
-    def __init__(self, udp_communicator: UDPCommunicator, robot_color: str):
+    def __init__(self, udp_communicator: UDPCommunicator, robot_id: int = 0):
         self.udp = udp_communicator
-        self.robot_color = robot_color.lower()
+        self.robot_id = robot_id
         self.mode = 'stop'
 
         self.state = State()  # ロボットの状態を管理するインスタンス
@@ -28,23 +28,20 @@ class RobotController:
             self.state, self.basic_move)  # エイリアスを作成
         self.ball_placement = self.ball_placement.ball_placement
 
-        print(
-            f"[{self.robot_color.capitalize()} Robot Controller] Initialized.")
-
     def handle_game_command(self, command_data):
         """
         外部からのゲームコマンドを処理し、ロボットの動作モードを切り替える。
         """
         cmd_type = command_data.get("type")
         cmd = command_data.get("command")
-        target_robot_color = command_data.get("robot_color")
+        target_team_color = command_data.get("team_color")
 
-        if target_robot_color is not None and target_robot_color != self.robot_color:
+        if target_team_color is not None and target_team_color != config.TEAM_COLOR:
             return
 
         if cmd_type == "game_command":
             print(
-                f"[{self.robot_color.capitalize()} Robot Controller] Processing game command: {cmd}")
+                f"[Robot {self.robot_id} Controller] Processing game command: {cmd}")
 
             if cmd == "stop_game":
                 self.mode = 'stop_game'
@@ -63,30 +60,25 @@ class RobotController:
                 self.mode = 'ball_placement'
             else:
                 print(
-                    f"[{self.robot_color.capitalize()} Robot Controller] Received unknown game command: {cmd}")
+                    f"[Robot {self.robot_id} Controller] Received unknown game command: {cmd}")
 
     def process_data_and_control(self, vision_data):
         """
         Visionデータとセンサーデータを取得し、制御ロジックを実行し、指令を送信する。
         このメソッドはメインループから定期的に呼び出されることを想定。
         """
-        # ロボットが有効化されているかチェック
-        if self.robot_color == 'yellow' and not config.ENABLE_YELLOW_ROBOT:
-            return
-        if self.robot_color == 'blue' and not config.ENABLE_BLUE_ROBOT:
-            return
-
         if not vision_data:
             return
 
         # --- 担当ロボットのVisionデータを見つける ---
         robot_data = None
-        if self.robot_color == 'yellow':
-            yellow_robots = vision_data.get('yellow_robots', [])
-            robot_data = yellow_robots[0] if yellow_robots else None
-        elif self.robot_color == 'blue':
-            blue_robots = vision_data.get('blue_robots', [])
-            robot_data = blue_robots[0] if blue_robots else None
+        if config.TEAM_COLOR == 'yellow':
+            yellow_robots = vision_data.get('yellow_robots', {})
+            robot_data = yellow_robots.get(str(self.robot_id))  # 安全にキーを取得
+
+        elif config.TEAM_COLOR == 'blue':
+            blue_robots = vision_data.get('blue_robots', {})
+            robot_data = blue_robots.get(str(self.robot_id))
 
         # ボールデータも必要に応じて取得
         orange_balls = vision_data.get('orange_balls', [])
@@ -97,16 +89,12 @@ class RobotController:
 
         if self.state.robot_pos is None or self.state.robot_dir_angle is None:
             print(
-                f"[{self.robot_color.capitalize()} Robot Controller] Incomplete vision data.")
+                f"[Robot {self.robot_id} Controller] Incomplete vision data.")
             self._send_stop_command()
             return
-
         # --- センサーデータの取得と処理 ---
-        latest_sensor_data = None
-        if self.robot_color == 'yellow':
-            latest_sensor_data = self.udp.get_latest_yellow_sensor_data()
-        elif self.robot_color == 'blue':
-            latest_sensor_data = self.udp.get_latest_blue_sensor_data()
+        latest_sensor_data = self.udp.get_latest_robot_sensor_data(
+            self.robot_id)
 
         if latest_sensor_data:
             if latest_sensor_data.get("type") == "sensor_data":
@@ -116,7 +104,7 @@ class RobotController:
                 self.state.photo_back = latest_sensor_data.get(
                     "photo", {}).get("back")
                 # print(
-                #     f"[{self.robot_color.capitalize()} Robot Controller] Sensor Data: {latest_sensor_data}")
+                #     f"[{config.TEAM_COLOR.capitalize()} Robot Controller] Sensor Data: {latest_sensor_data}")
 
         if self.mode != 'stop' and self.state.court_ball_pos is None:
             return
@@ -126,7 +114,8 @@ class RobotController:
         if self.mode == 'stop':
             self._send_stop_command()
         elif self.mode == 'start_game':
-            command_data = self.basic_move.move_to_ball(0)
+            command_data = self._control_move_around_ball()
+
         elif self.mode == 'stop_game':
             # command_data = self.basic_move.move_to_ball(
             #     mymath.NormalizeDeg180(self.state.ball_court_center_angle + 180))
@@ -142,9 +131,11 @@ class RobotController:
             command_data['cmd']['vision_angle'] = self.state.robot_dir_angle
             command_data['cmd']['stop'] = False
 
-            # print(f"[{self.robot_color.capitalize()} Robot Controller] Generated Command: {command_data}") # デバッグ用
+            # デバッグ用
+            # print(
+            #     f"[Robot {self.robot_id} Controller] Generated Command: {command_data}")
 
-            self.udp.send_command(command_data, self.robot_color)
+            self.udp.send_command(command_data, self.robot_id)
         else:
             pass
 
@@ -157,9 +148,10 @@ class RobotController:
             face_angle = target_angle
             face_axis = 1
             if abs(self.state.robot_dir_angle - target_angle) < 30:
-                face_speed = 3.14 * 0.25
-            face_speed = 3.14 * 0.5
-            dribble = 50
+                face_speed = 3.14 * 0.3
+            else:
+                face_speed = 3.14 * 0.6
+            dribble = 100
             kick = None
 
             if abs(self.state.robot_dir_angle - target_angle) < 15:
@@ -169,7 +161,7 @@ class RobotController:
                 "cmd": {
                     "move_angle": 0,
                     "move_speed": 0,
-                    "move_acce": 5,
+                    "move_acce": 2,
                     "face_angle": face_angle,
                     "face_axis": face_axis,
                     "face_speed": face_speed,
@@ -196,5 +188,5 @@ class RobotController:
                 "dribble": False,
             }
         }
-        self.udp.send_command(command_data, self.robot_color)
-        # print(f"[{self.robot_color.capitalize()} Robot Controller] Sent Stop Command.")
+        self.udp.send_command(command_data, self.robot_id)
+        # print(f"[{config.TEAM_COLOR.capitalize()} Robot Controller] Sent Stop Command.")
