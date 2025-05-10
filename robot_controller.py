@@ -8,6 +8,7 @@ from lib.udp_communicator import UDPCommunicator
 from state import State
 from algorithm.basic_move import BasicMove
 from algorithm.ball_placement import BallPlacement
+from algorithm.attack import Attack
 
 
 class RobotController:
@@ -26,7 +27,9 @@ class RobotController:
         self.basic_move = BasicMove(self.state)
         self.ball_placement = BallPlacement(
             self.state, self.basic_move)  # エイリアスを作成
+        self.attack = Attack(self.state, self.basic_move)
         self.ball_placement = self.ball_placement.ball_placement
+        self.attack = self.attack.attack
 
     def handle_game_command(self, command_data):
         """
@@ -114,7 +117,7 @@ class RobotController:
         if self.mode == 'stop':
             self._send_stop_command()
         elif self.mode == 'start_game':
-            command_data = self._control_move_around_ball()
+            command_data = self.attack()
 
         elif self.mode == 'stop_game':
             # command_data = self.basic_move.move_to_ball(
@@ -139,49 +142,15 @@ class RobotController:
         else:
             pass
 
-    def _control_move_around_ball(self):
-        target_pos = [100 - self.state.robot_pos[0],
-                      0 - self.state.robot_pos[1]]
-        target_angle = math.degrees(math.atan2(
-            target_pos[1], target_pos[0])) * -1
-        if (self.state.photo_front == True):
-            face_angle = target_angle
-            face_axis = 1
-            if abs(self.state.robot_dir_angle - target_angle) < 30:
-                face_speed = 3.14 * 0.3
-            else:
-                face_speed = 3.14 * 0.6
-            dribble = 100
-            kick = None
-
-            if abs(self.state.robot_dir_angle - target_angle) < 15:
-                kick = 100
-                dribble = 0
-            return {
-                "cmd": {
-                    "move_angle": 0,
-                    "move_speed": 0,
-                    "move_acce": 2,
-                    "face_angle": face_angle,
-                    "face_axis": face_axis,
-                    "face_speed": face_speed,
-                    "stop": False,
-                    "kick": kick,
-                    "dribble": dribble,
-                }
-            }
-        else:
-            return self.basic_move.catch_ball()
-
     def _send_stop_command(self):
         """安全のため、停止コマンドを送信するヘルパーメソッド"""
         command_data = {
             "ts": int(time.time() * 1000),
             "cmd": {
-                "move_angle": 0.0,
-                "move_speed": 0.0,
+                "move_angle": 0,
+                "move_speed": 0,
                 "move_acce": 0,
-                "face_angle": 0.0,
+                "face_angle": 0,
                 "face_axis": 0,
                 "stop": True,
                 "kick": False,
