@@ -1,6 +1,4 @@
 import time
-import math
-import lib.my_math as mymath
 import config
 
 from lib.udp_communicator import UDPCommunicator
@@ -31,48 +29,11 @@ class RobotController:
         self.ball_placement = self.ball_placement.ball_placement
         self.attack = self.attack.attack
 
-    def handle_game_command(self, command_data):
-        """
-        外部からのゲームコマンドを処理し、ロボットの動作モードを切り替える。
-        """
-        cmd_type = command_data.get("type")
-        cmd = command_data.get("command")
-        target_team_color = command_data.get("team_color")
-
-        if target_team_color is not None and target_team_color != config.TEAM_COLOR:
-            return
-
-        if cmd_type == "game_command":
-            print(
-                f"[Robot {self.robot_id} Controller] Processing game command: {cmd}")
-
-            if cmd == "stop_game":
-                self.mode = 'stop_game'
-                self._placement_target_pos = None
-            elif cmd == "start_game":
-                self.mode = 'start_game'
-                self._placement_target_pos = None
-            elif cmd == "emergency_stop":
-                self.mode = 'stop'
-                self._placement_target_pos = None
-                self._send_stop_command()  # 受信ループとは別に即座に停止コマンドを送信
-            elif cmd == "place_ball":
-                target_x = command_data.get("x")
-                target_y = command_data.get("y")
-                self._placement_target_pos = [target_x, target_y]
-                self.mode = 'ball_placement'
-            else:
-                print(
-                    f"[Robot {self.robot_id} Controller] Received unknown game command: {cmd}")
-
     def process_data_and_control(self, vision_data):
         """
         Visionデータとセンサーデータを取得し、制御ロジックを実行し、指令を送信する。
         このメソッドはメインループから定期的に呼び出されることを想定。
         """
-        if not vision_data:
-            return
-
         # --- 担当ロボットのVisionデータを見つける ---
         robot_data = None
         if config.TEAM_COLOR == 'yellow':
@@ -93,8 +54,9 @@ class RobotController:
         if self.state.robot_pos is None or self.state.robot_dir_angle is None:
             print(
                 f"[Robot {self.robot_id} Controller] Incomplete vision data.")
-            self._send_stop_command()
+            self.send_stop_command()
             return
+
         # --- センサーデータの取得と処理 ---
         latest_sensor_data = self.udp.get_latest_robot_sensor_data(
             self.robot_id)
@@ -109,41 +71,23 @@ class RobotController:
                 # print(
                 #     f"[{config.TEAM_COLOR.capitalize()} Robot Controller] Sensor Data: {latest_sensor_data}")
 
-        if self.mode != 'stop' and self.state.court_ball_pos is None:
-            return
+    def move_to_pos(self, target_x, target_y):
+        command = self.basic_move.move_to_pos(target_x, target_y)
+        print(f"[Robot {self.robot_id} Controller] Move Command: {command}")
+        self.send_command(command)
 
-        # --- 制御ロジック実行 ---
-        command_data = None
-        if self.mode == 'stop':
-            self._send_stop_command()
-        elif self.mode == 'start_game':
-            command_data = self.attack()
+    def atack(self):
+        command = self.attack()
+        print(f"[Robot {self.robot_id} Controller] Attack Command: {command}")
+        self.send_command(command)
 
-        elif self.mode == 'stop_game':
-            # command_data = self.basic_move.move_to_ball(
-            #     mymath.NormalizeDeg180(self.state.ball_court_center_angle + 180))
-            command_data = self.basic_move.move_to_pos(-30, 0)
-        elif self.mode == 'ball_placement':
-            command_data = self.ball_placement(self._placement_target_pos[0],
-                                               self._placement_target_pos[1])
+    def send_command(self, cmd):
+        command_data = cmd
+        command_data['cmd']['vision_angle'] = self.state.robot_dir_angle
+        command_data['cmd']['stop'] = False
+        self.udp.send_command(command_data, self.robot_id)
 
-        # --- 指令データの送信 ---
-        if command_data:
-            # 共通の基本情報をコマンドに追加
-            # command_data['ts'] = int(time.time() * 1000)  # タイムスタンプ (ミリ秒)
-            command_data['cmd']['vision_angle'] = self.state.robot_dir_angle
-            command_data['cmd']['stop'] = False
-
-            # デバッグ用
-            # print(
-            #     f"[Robot {self.robot_id} Controller] Generated Command: {command_data}")
-
-            self.udp.send_command(command_data, self.robot_id)
-        else:
-            pass
-
-    def _send_stop_command(self):
-        """安全のため、停止コマンドを送信するヘルパーメソッド"""
+    def send_stop_command(self):
         command_data = {
             "ts": int(time.time() * 1000),
             "cmd": {

@@ -16,6 +16,8 @@ CONTROL_LOOP_INTERVAL = 0.01  # 10ms
 
 # コート中心への移動時の閾値とゲイン
 MAX_SPEED = 1
+
+
 PLACEMENT_R = 10  # cm
 
 COURT_WIDTH = 150  # cm

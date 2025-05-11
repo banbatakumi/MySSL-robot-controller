@@ -2,6 +2,7 @@ import time
 import config  # config.py から設定を読み込む
 from lib.udp_communicator import UDPCommunicator  # libフォルダにあると仮定
 from robot_controller import RobotController
+from strategy.strategy_maneger import StrategyManager
 
 
 def main():
@@ -29,51 +30,30 @@ def main():
         udp_comm.close_sockets()
         return
 
+    # StrategyManagerを初期化
+    strategy_mgr = StrategyManager(robot_controllers)
+    print(
+        f"StrategyManager initialized with {len(robot_controllers)} robot(s).")
+
     udp_comm.start_receiving()
 
-    print(
-        f"Entering main control loop with {len(robot_controllers)} robot controller(s).")
+    print("Entering main control loop...")
     try:
         while True:
+            # 1. ゲームコマンドの処理
             game_command_data = udp_comm.get_latest_game_command()
             if game_command_data:
-                cmd_type = game_command_data.get("type")
-                cmd = game_command_data.get("command")
-                target_team = game_command_data.get("team_color")
+                strategy_mgr.handle_game_command(game_command_data)
 
-                if cmd_type == "game_command":
-                    if cmd in ("emergency_stop", "start_game", "stop_game"):
-                        print(
-                            f"'{cmd.replace('_', ' ').title()}' command received! Broadcasting to all controllers.")
-                        for controller in robot_controllers.values():
-                            controller.handle_game_command(game_command_data)
-                    else:  # その他のコマンド (target_team が使われる想定)
-                        if target_team:
-                            commanded_specific_robot = False
-                            for robot_id, controller_instance in robot_controllers.items():
-                                # robot_id に対応する設定情報を取得
-                                current_robot_cfg = next(
-                                    (rcfg for rcfg in config.ROBOTS_CONFIG if rcfg["id"] == robot_id), None)
-                                if not current_robot_cfg:
-                                    continue
-
-                                # ターゲット名がロボット名と一致する場合にコマンドを送信
-                                if config.TEAM_COLOR == target_team:
-                                    controller_instance.handle_game_command(
-                                        game_command_data)
-                                    commanded_specific_robot = True
-
-                            if not commanded_specific_robot:
-                                print(
-                                    f"No enabled robot found with name '{target_team}' for command '{cmd}'.")
-                        else:
-                            print(
-                                f"Received command '{cmd}' without 'robot_color' (target name) specified.")
-
+            # 2. Visionデータの取得と戦略に基づく制御
             vision_data = udp_comm.get_latest_vision_data()
-            for controller in robot_controllers.values():
-                # RobotController内で自分のセンサーデータを udp_comm.get_latest_robot_sensor_data(self.robot_id) で取得想定
-                controller.process_data_and_control(vision_data)
+            if not vision_data:
+                continue
+
+            for rc in robot_controllers.values():
+                rc.process_data_and_control(vision_data)
+
+            strategy_mgr.update_strategy_and_control(vision_data)
 
             time.sleep(config.CONTROL_LOOP_INTERVAL)
 
