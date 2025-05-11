@@ -54,6 +54,7 @@ def main():
                 rc.process_data_and_control(vision_data)
 
             strategy_mgr.update_strategy_and_control(vision_data)
+            # print(vision_data)
 
             time.sleep(config.CONTROL_LOOP_INTERVAL)
 

@@ -44,6 +44,11 @@ class StrategyManager:
 
     def update_strategy_and_control(self, vision_data):
         for robot_id, rc in self.robot_controllers.items():
+            if rc.state.robot_pos is None or rc.state.robot_dir_angle is None:
+                print(
+                    f"[Robot {robot_id} Maneger] Incomplete vision data.")
+                rc.send_stop_command()
+                continue
             command = None
             if self.game_mode == 'stop_game':
                 command = rc.basic_move.move_to_pos(

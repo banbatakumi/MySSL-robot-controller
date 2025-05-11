@@ -3,7 +3,7 @@
 VISION_LISTEN_PORT = 50007
 
 # ゲームコントローラーからのコマンド受信ポート
-GAME_COMMAND_LISTEN_PORT = 50011
+GAME_COMMAND_LISTEN_PORT = 50008
 
 # 待ち受けIPアドレス: 通常は '0.0.0.0'
 LISTEN_IP = "0.0.0.0"
@@ -36,8 +36,8 @@ ROBOTS_CONFIG = [
         "id": 0,
         "ip": "127.0.0.1",
         # "ip": "192.168.50.107",
-        "send_port": 50008,
-        "listen_port": 50009,
+        "send_port": 50010,
+        "listen_port": 50011,
         "enabled": True
     },
     {
@@ -45,8 +45,8 @@ ROBOTS_CONFIG = [
         "ip": "127.0.0.1",
         # "ip": "192.168.50.108",
         "send_port": 50012,
-        "listen_port": 50010,
-        "enabled": True
+        "listen_port": 50013,
+        "enabled": False
     },
 ]
 

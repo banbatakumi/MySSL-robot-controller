@@ -10,7 +10,7 @@ class BallPlacement:
         if (abs(self.state.court_ball_pos[0] - target_x) < config.PLACEMENT_R and abs(self.state.court_ball_pos[1] - target_y) < config.PLACEMENT_R):
             if self.state.ball_dis < config.PLACEMENT_R:
                 cmd = self.basic_move.move(
-                    180, 0.5, 1, face_angle=self.state.ball_angle)
+                    180, 0.5, 0.5, face_angle=self.state.ball_angle)
                 cmd['cmd']['kick'] = 10
                 return cmd
             else:

@@ -1,6 +1,7 @@
 import math
 import lib.my_math as mymath
 import config
+import lib.my_math as mymath
 
 
 class Attack:
@@ -17,21 +18,26 @@ class Attack:
         if (self.state.photo_front == True):
             face_angle = target_angle
             face_axis = 1
-            if mymath.GapDeg(self.state.robot_dir_angle, target_angle) < 30:
-                face_speed = 3.14 * 0.3
-            else:
-                face_speed = 3.14 * 0.6
-            dribble = 100
+            dribble = mymath.GapDeg(
+                self.state.robot_dir_angle, target_angle) * 1.5
+            dribble = min(100, dribble)
+            move_speed = 0
+            face_speed = mymath.GapDeg(
+                self.state.robot_dir_angle, target_angle) * 0.02
+            face_speed = min(mymath.PI, face_speed)
+            face_speed = max(mymath.PI * 0.25, face_speed)
+            if mymath.GapDeg(self.state.robot_dir_angle, target_angle) < 15:
+                move_speed = config.MAX_SPEED
             kick = None
 
-            if mymath.GapDeg(self.state.robot_dir_angle, target_angle) < 10:
+            if mymath.GapDeg(self.state.robot_dir_angle, target_angle) < 5:
                 kick = 100
                 dribble = 0
             return {
                 "cmd": {
                     "move_angle": 0,
-                    "move_speed": 0,
-                    "move_acce": 3,
+                    "move_speed": round(move_speed, 2),
+                    "move_acce": 5,
                     "face_angle": face_angle,
                     "face_axis": face_axis,
                     "face_speed": face_speed,
