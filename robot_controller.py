@@ -71,16 +71,6 @@ class RobotController:
                 # print(
                 #     f"[{config.TEAM_COLOR.capitalize()} Robot Controller] Sensor Data: {latest_sensor_data}")
 
-    # def move_to_pos(self, target_x, target_y):
-    #     command = self.basic_move.move_to_pos(target_x, target_y)
-    #     print(f"[Robot {self.robot_id} Controller] Move Command: {command}")
-    #     self.send_command(command)
-
-    # def atack(self):
-    #     command = self.attack()
-    #     print(f"[Robot {self.robot_id} Controller] Attack Command: {command}")
-    #     self.send_command(command)
-
     def send_command(self, cmd):
         command_data = cmd
         command_data['cmd']['vision_angle'] = self.state.robot_dir_angle

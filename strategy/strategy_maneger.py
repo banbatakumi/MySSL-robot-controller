@@ -46,17 +46,35 @@ class StrategyManager:
         for robot_id, rc in self.robot_controllers.items():
             command = None
             if self.game_mode == 'stop_game':
-                if robot_id == 0:
-                    command = rc.basic_move.move_to_pos(0, 0)
-                elif robot_id == 1:
-                    command = rc.basic_move.move_to_pos(0.5, 0)
+                command = rc.basic_move.move_to_pos(
+                    (0.2 + robot_id * 0.2) * config.TEAM_SIDE, 0)
 
             elif self.game_mode == 'start_game':
                 if robot_id == 0:
                     command = rc.attack()
                 elif robot_id == 1:
-                    command = rc.basic_move.move_to_pos(0.5, 0)
+                    command = rc.basic_move.move_to_pos(0, 0)
+
+            elif self.game_mode == 'ball_placement':
+                if robot_id == self.get_closest_robot_to_ball():
+                    target_x = self._placement_target_pos[0]
+                    target_y = self._placement_target_pos[1]
+                    command = rc.ball_placement(target_x, target_y)
 
             if command is None:
-                return
+                continue
             rc.send_command(command)
+
+    def get_closest_robot_to_ball(self):
+        closest_robot_id = None
+        min_distance = float('inf')  # 初期値を無限大に設定
+
+        for robot_id, rc in self.robot_controllers.items():
+            # ロボットの状態からボールとの距離を取得
+            ball_distance = rc.state.ball_dis
+
+            if ball_distance is not None and ball_distance < min_distance:
+                min_distance = ball_distance
+                closest_robot_id = robot_id
+
+        return closest_robot_id

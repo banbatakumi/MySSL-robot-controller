@@ -7,19 +7,19 @@ import lib.pid as pid
 class BasicMove:
     def __init__(self, state):
         self.state = state
-        self.moveto_pos_pid = pid.PID(5, 0, 0.5)
+        self.moveto_pos_pid = pid.PID(5, 0, 1)
 
-    def move(self, angle, speed, acce):
+    def move(self, angle=0, speed=0, acce=0, face_angle=0, face_speed=0, face_axis=0, dribble=0, kick=0):
         return {
             "cmd": {
                 "move_angle": round(angle, 0),
                 "move_speed": round(speed, 2),
                 "move_acce": acce,
-                "face_angle": 0,
-                "face_speed": 0,
-                "face_axis": 0,
-                "dribble": 0,
-                "kick": 0
+                "face_angle": face_angle,
+                "face_speed": face_speed,
+                "face_axis": face_axis,
+                "dribble": dribble,
+                "kick": kick
             }
         }
 
@@ -44,7 +44,7 @@ class BasicMove:
             }
         }
 
-    def move_to_pos(self, target_x, target_y):
+    def move_to_pos(self, target_x, target_y, face_angle=0, with_ball=False):
         # 目標までのベクトル
         vector = [target_x - self.state.robot_pos[0],
                   target_y - self.state.robot_pos[1]]
@@ -60,14 +60,16 @@ class BasicMove:
         face_speed = 0
         face_axis = 0
         dribble = 0
-        if self.state.photo_front == True:
+        if with_ball == True:
             move_max_speed = 0.5
-            if (mymath.GapDeg(0, self.state.robot_dir_angle) > 20):
+            if (mymath.GapDeg(move_angle, self.state.robot_dir_angle) > 20):
                 move_max_speed = 0
-            move_acce = 1
+            move_acce = 0.5
             face_speed = mymath.HALF_PI
             face_axis = 1
             dribble = 100
+            face_angle = move_angle
+            move_angle = 0
 
         speed = abs(self.moveto_pos_pid.update(0, distance))
         speed = min(move_max_speed,
@@ -78,7 +80,7 @@ class BasicMove:
                 "move_angle": round(move_angle, 0),
                 "move_speed": round(speed, 2),
                 "move_acce": round(move_acce, 2),
-                "face_angle": 0,
+                "face_angle": face_angle,
                 "face_speed": face_speed,
                 "face_axis": face_axis,
                 "dribble": dribble,

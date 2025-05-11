@@ -18,15 +18,17 @@ CONTROL_LOOP_INTERVAL = 0.01  # 10ms
 MAX_SPEED = 1
 
 
-PLACEMENT_R = 0.1  # m
+PLACEMENT_R = 0.2  # m
 
 COURT_WIDTH = 1.5  # m
 COURT_HEIGHT = 1  # m
 
-ROBOT_R = 9
+ROBOT_R = 0.09  # m
 
-TEAM_COLOR = 'yellow'  # 'yellow' or 'blue'
-TEAM_SIDE = 'right'  # 'left' or 'right'
+TEAM_COLOR = 'yellow'  # 'yellow' or 'blu
+
+TEAM_SIDE = 'left'  # 'left' or 'right'
+TEAM_SIDE = -1 if TEAM_SIDE == 'left' else 1
 
 # ロボットごとの設定
 ROBOTS_CONFIG = [
