@@ -44,14 +44,19 @@ class StrategyManager:
 
     def update_strategy_and_control(self, vision_data):
         for robot_id, rc in self.robot_controllers.items():
+            command = None
             if self.game_mode == 'stop_game':
                 if robot_id == 0:
-                    rc.move_to_pos(0, 0)
+                    command = rc.basic_move.move_to_pos(0, 0)
                 elif robot_id == 1:
-                    rc.move_to_pos(-50, 0)
+                    command = rc.basic_move.move_to_pos(0.5, 0)
 
             elif self.game_mode == 'start_game':
                 if robot_id == 0:
-                    rc.atack()
+                    command = rc.attack()
                 elif robot_id == 1:
-                    rc.move_to_pos(-0.5, 0)
+                    command = rc.basic_move.move_to_pos(0.5, 0)
+
+            if command is None:
+                return
+            rc.send_command(command)

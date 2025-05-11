@@ -7,7 +7,7 @@ import lib.pid as pid
 class BasicMove:
     def __init__(self, state):
         self.state = state
-        self.moveto_pos_pid = pid.PID(0.04, 0, 0.01)
+        self.moveto_pos_pid = pid.PID(5, 0, 0.5)
 
     def move(self, angle, speed, acce):
         return {
@@ -24,10 +24,10 @@ class BasicMove:
         }
 
     def catch_ball(self):
-        move_speed = min(config.MAX_SPEED, self.state.ball_dis * 0.01)
+        move_speed = min(config.MAX_SPEED, self.state.ball_dis)
         move_speed = max(0.4, move_speed)
         dribble = 0
-        if self.state.ball_dis < 40 and mymath.GapDeg(self.state.ball_angle, self.state.robot_dir_angle) < 30:
+        if self.state.ball_dis < 0.4 and mymath.GapDeg(self.state.ball_angle, self.state.robot_dir_angle) < 30:
             dribble = 50
 
         return {
@@ -90,20 +90,20 @@ class BasicMove:
         move_angle = 0
 
         speed = abs(self.state.robot_ball_angle) * \
-            0.02 + (self.state.ball_dis - 20) * 0.02
+            0.02 + (self.state.ball_dis - 0.2) * 0.5
 
         speed = min(config.MAX_SPEED, speed)
         speed = max(0, speed)
 
-        if self.state.ball_dis < 20:
-            theta = 90 + float((20 - self.state.ball_dis) / 20) * 45
+        if self.state.ball_dis < 0.2:
+            theta = 90 + float((0.2 - self.state.ball_dis) / 0.2) * 45
             move_angle = self.state.robot_ball_angle
             if self.state.robot_ball_angle > 0:
                 move_angle += theta
             else:
                 move_angle -= theta
         else:
-            ratio = 20 / self.state.ball_dis
+            ratio = 0.2 / self.state.ball_dis
             if ratio > 1:
                 ratio = 1
             theta = math.asin(ratio) * 180 / mymath.PI
