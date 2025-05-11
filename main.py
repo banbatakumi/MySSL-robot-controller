@@ -1,95 +1,61 @@
 import time
 import config  # config.py から設定を読み込む
-from udp_communicator import UDPCommunicator
+from lib.udp_communicator import UDPCommunicator  # libフォルダにあると仮定
 from robot_controller import RobotController
+from strategy.strategy_maneger import StrategyManager
 
 
 def main():
-    """
-    プログラムのエントリーポイント。
-    UDP通信、ロボット制御の初期化とメインループを実行する。
-    複数のロボットコントローラーを管理する。
-    """
     print("Starting Robot Controller Application...")
 
-    # UDP通信クラスの初期化
     udp_comm = UDPCommunicator()
     if not udp_comm.init_sockets():
         print("Failed to initialize UDP communication. Exiting.")
         return
 
     # ロボット制御クラスの初期化 (configで有効化されているロボットのみ)
-    controllers = []
-    yellow_controller = None  # 後でゲームコマンド処理で参照するため変数として保持
-    blue_controller = None   # 同様
-    if config.ENABLE_YELLOW_ROBOT:
-        yellow_controller = RobotController(udp_comm, 'yellow')
-        controllers.append(yellow_controller)
-        print("Yellow Robot Controller added.")
+    # robot_id をキーとし、RobotControllerインスタンスを値とする辞書
+    robot_controllers = {}
+    for robot_cfg in config.ROBOTS_CONFIG:
+        if robot_cfg["enabled"]:
+            robot_id = robot_cfg["id"]
+            # RobotControllerはrobot_idを受け取る想定
+            controller = RobotController(udp_comm, robot_id)
+            robot_controllers[robot_id] = controller
+            print(
+                f"Robot {robot_id}  Controller added.")
 
-    if config.ENABLE_BLUE_ROBOT:
-        blue_controller = RobotController(udp_comm, 'blue')
-        controllers.append(blue_controller)
-        print("Blue Robot Controller added.")
-
-    if not controllers:
+    if not robot_controllers:
         print("No robots enabled in config. Exiting.")
         udp_comm.close_sockets()
         return
 
-    # 受信スレッドの開始
+    # StrategyManagerを初期化
+    strategy_mgr = StrategyManager(robot_controllers)
+    print(
+        f"StrategyManager initialized with {len(robot_controllers)} robot(s).")
+
     udp_comm.start_receiving()
 
-    print(
-        f"Entering main control loop with {len(controllers)} robot controller(s).")
+    print("Entering main control loop...")
     try:
         while True:
+            # 1. ゲームコマンドの処理
             game_command_data = udp_comm.get_latest_game_command()
             if game_command_data:
-                # コマンドの内容に応じて処理を分岐
-                cmd_type = game_command_data.get("type")
-                cmd = game_command_data.get("command")
-                target_robot_color = game_command_data.get("robot_color")
+                strategy_mgr.handle_game_command(game_command_data)
 
-                if cmd_type == "game_command":
-                    # print(f"Processing game command: {cmd} (Target: {target_robot_color})") # デバッグ用ログ
+            # 2. Visionデータの取得と戦略に基づく制御
+            vision_data = udp_comm.get_latest_vision_data()
+            if not vision_data:
+                continue
 
-                    # 緊急停止は全てのロボットに伝える
-                    if cmd == "emergency_stop":
-                        print(
-                            "Emergency Stop command received! Broadcasting to all controllers.")
-                        for controller in controllers:
-                            controller.handle_game_command(game_command_data)
-                    elif cmd == "start_game":
-                        print(
-                            "Start Game command received! Broadcasting to all controllers.")
-                        for controller in controllers:
-                            controller.handle_game_command(game_command_data)
-                    elif cmd == "stop_game":
-                        print(
-                            "Stop Game command received! Broadcasting to all controllers.")
-                        for controller in controllers:
-                            controller.handle_game_command(game_command_data)
-                    else:
-                        if target_robot_color in ('yellow', 'blue'):
-                            if target_robot_color == 'yellow' and yellow_controller:
-                                yellow_controller.handle_game_command(
-                                    game_command_data)
-                            elif target_robot_color == 'blue' and blue_controller:
-                                blue_controller.handle_game_command(
-                                    game_command_data)
-                            else:
-                                print(
-                                    f"Target robot '{target_robot_color}' for command '{cmd}' not found or not enabled.")
-                        else:
-                            print(
-                                f"Received command '{cmd}' without valid target_robot_color.")
+            for rc in robot_controllers.values():
+                rc.process_data_and_control(vision_data)
 
-            # --- 各ロボットコントローラーの制御ロジック実行 ---
-            for controller in controllers:
-                controller.process_data_and_control()
+            strategy_mgr.update_strategy_and_control(vision_data)
+            # print(vision_data)
 
-            # 制御ループのポーリング間隔
             time.sleep(config.CONTROL_LOOP_INTERVAL)
 
     except KeyboardInterrupt:
@@ -98,10 +64,8 @@ def main():
         print(f"An unexpected error occurred: {e}")
     finally:
         print("Shutting down...")
-        # ソケットを閉じる (受信スレッドも停止される)
-        udp_comm.close_sockets()
+        udp_comm.close_sockets()  # これにより受信スレッドも停止準備が整う
         print("Application finished.")
-        # 必要であれば他のリソース解放処理を追加
 
 
 if __name__ == "__main__":
