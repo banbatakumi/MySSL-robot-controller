@@ -7,14 +7,18 @@ import lib.pid as pid
 class BasicMove:
     def __init__(self, state):
         self.state = state
-        self.moveto_pos_pid = pid.PID(5, 0, 2)
+        self.move_to_pos_pid = pid.PID(3, 0, 0.5)
 
-    def move(self, angle=0, speed=0, acce=0, face_angle=0, face_speed=0, face_axis=0, dribble=0, kick=0):
+    def move(self, move_angle=0, move_speed=0, move_acce=0, face_angle=0, face_speed=0, face_axis=0, dribble=0, kick=0):
+        move_speed = min(config.MAX_SPEED, move_speed)
+        move_speed = max(0, move_speed)
+        dribble = min(100, dribble)
+        kick = min(100, kick)
         return {
             "cmd": {
-                "move_angle": round(angle, 0),
-                "move_speed": round(speed, 2),
-                "move_acce": acce,
+                "move_angle": round(move_angle, 0),
+                "move_speed": round(move_speed, 2),
+                "move_acce": move_acce,
                 "face_angle": face_angle,
                 "face_speed": face_speed,
                 "face_axis": face_axis,
@@ -24,25 +28,17 @@ class BasicMove:
         }
 
     def catch_ball(self):
-        move_speed = min(config.MAX_SPEED, self.state.ball_dis * 1.2)
+        move_speed = self.state.ball_dis * 1.2
         move_speed = max(0.4, move_speed)
         dribble = 0
         if self.state.ball_dis < 0.4 and mymath.GapDeg(self.state.ball_angle, self.state.robot_dir_angle) < 30:
             dribble = 50
 
-        return {
-            "cmd": {
-                "move_angle": 0,
-                "move_speed": round(move_speed, 2),
-                "move_acce": 1,
-                "face_angle": self.state.ball_angle,
-                "face_speed": 0,
-                "face_axis": 0,
-                "stop": False,
-                "kick": 0,
-                "dribble": dribble,
-            }
-        }
+        return self.move(move_angle=0,
+                         move_speed=move_speed,
+                         move_acce=1,
+                         face_angle=self.state.ball_angle,
+                         dribble=dribble)
 
     def move_to_pos(self, target_x, target_y, face_angle=0, with_ball=False):
         # 目標までのベクトル
@@ -66,37 +62,33 @@ class BasicMove:
             if (mymath.GapDeg(move_angle, self.state.robot_dir_angle) > 20):
                 move_max_speed = 0
                 dribble = 100
-            move_acce = 0.5
+            move_acce = 1.5
             face_speed = mymath.HALF_PI
             face_axis = 1
             face_angle = move_angle
             move_angle = 0
+        else:
+            move_angle -= self.state.robot_dir_angle
 
-        speed = abs(self.moveto_pos_pid.update(0, distance))
+        speed = abs(self.move_to_pos_pid.update(0, distance))
         speed = min(move_max_speed,
                     speed)
 
-        return {
-            "cmd": {
-                "move_angle": round(move_angle, 0),
-                "move_speed": round(speed, 2),
-                "move_acce": round(move_acce, 2),
-                "face_angle": face_angle,
-                "face_speed": face_speed,
-                "face_axis": face_axis,
-                "dribble": dribble,
-                "kick": 0
-            }
-        }
+        print(move_angle, speed)
 
-    def move_to_ball(self, angle):
+        return self.move(move_angle=move_angle,
+                         move_speed=speed,
+                         move_acce=move_acce,
+                         face_angle=face_angle,
+                         face_speed=face_speed,
+                         face_axis=face_axis,
+                         dribble=dribble)
+
+    def move_to_ball(self, face_angle):
         move_angle = 0
 
         speed = abs(self.state.robot_ball_angle) * \
             0.02 + (self.state.ball_dis - 0.2) * 0.5
-
-        speed = min(config.MAX_SPEED, speed)
-        speed = max(0, speed)
 
         if self.state.ball_dis < 0.2:
             theta = 90 + float((0.2 - self.state.ball_dis) / 0.2) * 45
@@ -117,15 +109,8 @@ class BasicMove:
             else:
                 move_angle -= theta
 
-        return {
-            "cmd": {
-                "move_angle": round(move_angle, 0),
-                "move_speed": round(speed, 2),
-                "move_acce": 3,
-                "face_angle": angle,
-                "face_speed": mymath.PI,
-                "face_axis": 0,
-                "dribble": 0,
-                "kick": 0
-            }
-        }
+        return self.move(move_angle=move_angle,
+                         move_speed=speed,
+                         move_acce=3,
+                         face_angle=face_angle,
+                         face_speed=mymath.PI)

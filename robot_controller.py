@@ -7,6 +7,7 @@ from state import State
 from algorithm.basic_move import BasicMove
 from algorithm.ball_placement import BallPlacement
 from algorithm.attack import Attack
+from algorithm.pass_ball import PassBall
 
 
 class RobotController:
@@ -26,6 +27,7 @@ class RobotController:
         self.ball_placement = BallPlacement(
             self.state, self.basic_move)  # エイリアスを作成
         self.attack = Attack(self.state, self.basic_move)
+        self.pass_ball = PassBall(self.state, self.basic_move)
         self.ball_placement = self.ball_placement.ball_placement
         self.attack = self.attack.attack
 

@@ -17,38 +17,44 @@ CONTROL_LOOP_INTERVAL = 0.01  # 10ms
 # コート中心への移動時の閾値とゲイン
 MAX_SPEED = 1
 
+MAX_KICK_POWER = 100
+MAX_DRIBBLE_POWER = 100
 
 PLACEMENT_R = 0.2  # m
 
-COURT_WIDTH = 1.5  # m
-COURT_HEIGHT = 1  # m
+COURT_WIDTH = 4  # m
+COURT_HEIGHT = 3  # m
 
 ROBOT_R = 0.09  # m
 
 TEAM_COLOR = 'yellow'  # 'yellow' or 'blu
 
-TEAM_SIDE = 'left'  # 'left' or 'right'
+TEAM_SIDE = 'right'  # 'left' or 'right'
 TEAM_SIDE = -1 if TEAM_SIDE == 'left' else 1
 
 # ロボットごとの設定
-ROBOTS_CONFIG = [
-    {
-        "id": 0,
-        "ip": "127.0.0.1",
-        # "ip": "192.168.50.107",
-        "send_port": 50010,
-        "listen_port": 50011,
+INITIAI_ROBOT_PORT = 50010
+NUM_ROBOTS = 6  # ロボットの数
+
+# ロボットごとの設定
+ROBOTS_CONFIG = []
+
+for i in range(NUM_ROBOTS):
+    robot_config = {
+        "id": i,
+        "ip": "127.0.0.1",  # すべてのロボットに共通のIP
+        "send_port": INITIAI_ROBOT_PORT + i * 2,
+        "listen_port": INITIAI_ROBOT_PORT + i * 2 + 1,
         "enabled": True
-    },
-    {
-        "id": 1,
-        "ip": "127.0.0.1",
-        # "ip": "192.168.50.108",
-        "send_port": 50012,
-        "listen_port": 50013,
-        "enabled": False
-    },
-]
+    }
+
+    # # 特定のロボットに個別の設定を追加
+    # if i == 0:
+    #     robot_config["ip"] = "192.168.50.107"  # ロボット0のIP
+    # elif i == 1:
+    #     robot_config["ip"] = "192.168.50.108"  # ロボット1のIP
+
+    ROBOTS_CONFIG.append(robot_config)
 
 # ソケットタイムアウト設定 (秒)
 SOCKET_TIMEOUT = 1.0
