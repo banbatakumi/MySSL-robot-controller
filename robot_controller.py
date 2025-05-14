@@ -71,7 +71,7 @@ class RobotController:
                 self.state.photo_back = latest_sensor_data.get(
                     "photo", {}).get("back")
                 # print(
-                #     f"[{config.TEAM_COLOR.capitalize()} Robot Controller] Sensor Data: {latest_sensor_data}")
+                #     f"[Robot {self.robot_id} Controller] Sensor Data: {latest_sensor_data}")
 
     def send_command(self, cmd):
         command_data = cmd

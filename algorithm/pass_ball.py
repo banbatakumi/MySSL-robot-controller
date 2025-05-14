@@ -1,12 +1,14 @@
 import config
 import math
 import lib.my_math as mymath
+import lib.pid as pid
 
 
 class PassBall:
     def __init__(self, state, basic_move):
         self.state = state
         self.basic_move = basic_move
+        self.receive_ball_pid = pid.PID(3, 0, 1)
 
     def pass_ball(self, target_x, target_y):
         target_dir = math.degrees(math.atan2(
@@ -14,23 +16,29 @@ class PassBall:
         target_dis = math.hypot(
             target_x - self.state.robot_pos[0], target_y - self.state.robot_pos[1])
 
-        dribble = 100
         kick = 0
-        if mymath.GapDeg(target_dir, self.state.robot_dir_angle) < 10:
-            dribble = 0
-        if mymath.GapDeg(target_dir, self.state.robot_dir_angle) < 5:
-            kick = target_dis * 75
-        print(
-            f"robot_dir: {self.state.robot_dir_angle}, target_dir: {target_dir}, target_dis: {target_dis}, dribble: {dribble}, kick: {kick}")
+        dribble = mymath.GapDeg(target_dir, self.state.robot_dir_angle) * 1.5
+        if mymath.GapDeg(target_dir, self.state.robot_dir_angle) < 2:
+            kick = target_dis * 60
         return self.basic_move.move(face_angle=target_dir,
-                                    face_speed=mymath.HALF_PI,
+                                    face_speed=mymath.PI,
                                     face_axis=1,
                                     dribble=dribble,
                                     kick=kick,)
 
     def receive_ball(self, target_x, target_y):
-        cmd = self.basic_move.move_to_pos(target_x, target_y,
-                                          face_angle=self.state.ball_angle)
-        if self.state.ball_dis < 0.5:
-            cmd['cmd']['dribble'] = 50
-        return cmd
+        target_dis = math.hypot(
+            target_x - self.state.robot_pos[0], target_y - self.state.robot_pos[1])
+        if self.state.ball_dis < 0.5 and target_dis < 0.3:
+            move_dir = 90 if self.state.robot_ball_pos[0] > 0 else -90
+            move_speed = abs(self.receive_ball_pid.update(0,
+                                                          self.state.robot_ball_pos[0]))
+            return self.basic_move.move(move_angle=move_dir,
+                                        move_speed=move_speed,
+                                        move_acce=0,
+                                        face_angle=self.state.ball_angle,
+                                        face_speed=mymath.HALF_PI,
+                                        dribble=50)
+        else:
+            return self.basic_move.move_to_pos(target_x, target_y,
+                                               face_angle=self.state.ball_angle)

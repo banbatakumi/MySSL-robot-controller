@@ -14,6 +14,15 @@ class BasicMove:
         move_speed = max(0, move_speed)
         dribble = min(100, dribble)
         kick = min(100, kick)
+
+        court_move_angle = mymath.NormalizeDeg180(
+            move_angle + self.state.robot_dir_angle)
+        stop_width = config.COURT_WIDTH * 0.5 - 0.2
+        stop_height = config.COURT_HEIGHT * 0.5 - 0.2
+        if (self.state.robot_pos[0] > stop_width and abs(court_move_angle) < 90) or (self.state.robot_pos[0] < -stop_width and abs(court_move_angle) > 90) or (self.state.robot_pos[1] > stop_height and court_move_angle < 0) or (self.state.robot_pos[1] < -stop_height and court_move_angle > 0):
+            move_speed = 0
+            move_acce = 0
+            print(self.state.robot_pos, court_move_angle)
         return {
             "cmd": {
                 "move_angle": round(move_angle, 0),
@@ -58,7 +67,7 @@ class BasicMove:
         dribble = 0
         if with_ball == True:
             move_max_speed = 0.5
-            dribble = 50
+            dribble = distance * 200
             if (mymath.GapDeg(move_angle, self.state.robot_dir_angle) > 20):
                 move_max_speed = 0
                 dribble = 100
@@ -73,8 +82,6 @@ class BasicMove:
         speed = abs(self.move_to_pos_pid.update(0, distance))
         speed = min(move_max_speed,
                     speed)
-
-        print(move_angle, speed)
 
         return self.move(move_angle=move_angle,
                          move_speed=speed,

@@ -55,31 +55,44 @@ class StrategyManager:
                     (0.2 + robot_id * 0.2) * config.TEAM_SIDE, 0)
 
             elif self.game_mode == 'start_game':
+                if (rc.state.court_ball_pos is None):
+                    return
+
+                if robot_id == 0:
+                    if rc.state.photo_front == False:
+                        command = rc.pass_ball.receive_ball(-0.5, 0)
+                        if rc.state.court_ball_pos[0] < 0 and rc.state.ball_dis < 0.4:
+                            command = rc.basic_move.catch_ball()
+                    else:
+                        command = rc.pass_ball.pass_ball(0.5, 0)
+                elif robot_id == 1:
+                    if rc.state.photo_front == False:
+                        command = rc.pass_ball.receive_ball(0.5, 0)
+                        if rc.state.court_ball_pos[0] > 0 and rc.state.ball_dis < 0.4:
+                            command = rc.basic_move.catch_ball()
+                    else:
+                        command = rc.pass_ball.pass_ball(-0.5, 0)
                 # if robot_id == 0:
                 #     if rc.state.photo_front == False:
-                #         command = rc.basic_move.catch_ball()
-                #         if rc.state.court_ball_pos[0] > 0:
-                #             command = rc.basic_move.move()
+                #         command = rc.pass_ball.receive_ball(0.5, 0.3)
                 #     else:
-                #         command = rc.pass_ball.pass_ball(1.5, 0.5)
+                #         command = rc.pass_ball.pass_ball(0.5, -0.3)
                 # elif robot_id == 1:
                 #     if rc.state.photo_front == False:
-                #         command = rc.pass_ball.receive_ball(1.5, 0.5)
+                #         command = rc.pass_ball.receive_ball(0.5, -0.3)
                 #     else:
-                #         command = rc.attack()
+                #         command = rc.pass_ball.pass_ball(-0.5, -0.3)
                 # elif robot_id == 2:
-                #     command = rc.basic_move.move_to_pos(
-                #         1 * config.TEAM_SIDE, 0)
+                #     if rc.state.photo_front == False:
+                #         command = rc.pass_ball.receive_ball(-0.5, -0.3)
+                #     else:
+                #         command = rc.pass_ball.pass_ball(-0.5, 0.3)
                 # elif robot_id == 3:
-                #     command = rc.basic_move.move_to_pos(
-                #         1.8 * config.TEAM_SIDE, 0)
-                # elif robot_id == 4:
-                #     command = rc.basic_move.move_to_pos(
-                #         1 * config.TEAM_SIDE, 1)
-                # elif robot_id == 5:
-                #     command = rc.basic_move.move_to_pos(
-                #         1 * config.TEAM_SIDE, -1)
-                command = rc.attack()
+                #     if rc.state.photo_front == False:
+                #         command = rc.pass_ball.receive_ball(-0.5, 0.3)
+                #     else:
+                #         command = rc.pass_ball.pass_ball(0.5, 0.3)
+
             elif self.game_mode == 'ball_placement':
                 if robot_id == self.get_closest_robot_to_ball():
                     target_x = self._placement_target_pos[0]
