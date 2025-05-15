@@ -38,18 +38,13 @@ class Attack:
             if mymath.GapDeg(self.state.robot_dir_angle, target_angle) < 5:
                 kick = 100
                 dribble = 0
-            return {
-                "cmd": {
-                    "move_angle": 0,
-                    "move_speed": round(move_speed, 2),
-                    "move_acce": 5,
-                    "face_angle": face_angle,
-                    "face_axis": face_axis,
-                    "face_speed": face_speed,
-                    "stop": False,
-                    "kick": kick,
-                    "dribble": dribble,
-                }
-            }
+            return self.basic_move.move(move_angle=0,
+                                        move_speed=move_speed,
+                                        move_acce=5,
+                                        face_angle=face_angle,
+                                        face_speed=face_speed,
+                                        kick=kick,
+                                        dribble=dribble
+                                        )
         else:
             return self.basic_move.catch_ball()

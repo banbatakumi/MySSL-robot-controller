@@ -34,7 +34,7 @@ TEAM_SIDE = -1 if TEAM_SIDE == 'left' else 1
 
 # ロボットごとの設定
 INITIAI_ROBOT_PORT = 50010
-NUM_ROBOTS = 1  # ロボットの数
+NUM_ROBOTS = 2  # ロボットの数
 
 # ロボットごとの設定
 ROBOTS_CONFIG = []
@@ -50,9 +50,9 @@ for i in range(NUM_ROBOTS):
 
     # # 特定のロボットに個別の設定を追加
     if i == 0:
-        robot_config["ip"] = "192.168.2.101"  # ロボット0のIP
+        robot_config["ip"] = "192.168.2.110"  # ロボット0のIP
     elif i == 1:
-        robot_config["ip"] = "192.168.2.102"  # ロボット1のIP
+        robot_config["ip"] = "192.168.2.111"  # ロボット1のIP
 
     ROBOTS_CONFIG.append(robot_config)
 

@@ -72,6 +72,7 @@ class StrategyManager:
                             command = rc.basic_move.catch_ball()
                     else:
                         command = rc.pass_ball.pass_ball(-0.5, 0)
+
                 # if robot_id == 0:
                 #     if rc.state.photo_front == False:
                 #         command = rc.pass_ball.receive_ball(0.5, 0.3)
