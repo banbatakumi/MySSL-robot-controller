@@ -58,20 +58,22 @@ class StrategyManager:
                 if (rc.state.court_ball_pos is None):
                     return
 
-                if robot_id == 0:
-                    if rc.state.photo_front == False:
-                        command = rc.pass_ball.receive_ball(-0.5, 0)
-                        if rc.state.court_ball_pos[0] < 0 and rc.state.ball_dis < 0.4:
-                            command = rc.basic_move.catch_ball()
-                    else:
-                        command = rc.pass_ball.pass_ball(0.5, 0)
-                elif robot_id == 1:
-                    if rc.state.photo_front == False:
-                        command = rc.pass_ball.receive_ball(0.5, 0)
-                        if rc.state.court_ball_pos[0] > 0 and rc.state.ball_dis < 0.4:
-                            command = rc.basic_move.catch_ball()
-                    else:
-                        command = rc.pass_ball.pass_ball(-0.5, 0)
+                if robot_id == 1:
+                    command = rc.basic_move.move_to_pos(-0.5, 0)
+                    # if rc.state.photo_front == False:
+                    #     command = rc.pass_ball.receive_ball(-0.6, 0)
+                    #     if rc.state.court_ball_pos[0] < 0 and rc.state.ball_dis < 0.4:
+                    #         command = rc.basic_move.catch_ball()
+                    # else:
+                    #     command = rc.pass_ball.pass_ball(0.6, 0)
+                elif robot_id == 0:
+                    command = rc.attack()
+                    # if rc.state.photo_front == False:
+                    #     command = rc.pass_ball.receive_ball(0.6, 0)
+                    #     if rc.state.court_ball_pos[0] > 0 and rc.state.ball_dis < 0.4:
+                    #         command = rc.basic_move.catch_ball()
+                    # else:
+                    #     command = rc.pass_ball.pass_ball(-0.6, 0)
 
                 # if robot_id == 0:
                 #     if rc.state.photo_front == False:
@@ -95,6 +97,8 @@ class StrategyManager:
                 #         command = rc.pass_ball.pass_ball(0.5, 0.3)
 
             elif self.game_mode == 'ball_placement':
+                if (rc.state.court_ball_pos is None):
+                    return
                 if robot_id == self.get_closest_robot_to_ball():
                     target_x = self._placement_target_pos[0]
                     target_y = self._placement_target_pos[1]

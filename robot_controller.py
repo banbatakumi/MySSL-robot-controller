@@ -1,5 +1,6 @@
 import time
 import config
+import random  # For dummy voltage
 
 from lib.udp_communicator import UDPCommunicator
 
@@ -14,6 +15,7 @@ class RobotController:
     """
     Visionデータとセンサーデータに基づいてロボットの制御指令を生成するクラス。
     特定のロボット (黄色 or 青色) の制御を担当する。
+    GUIへの状態情報送信も行う。
     """
 
     def __init__(self, udp_communicator: UDPCommunicator, robot_id: int = 0):
@@ -24,58 +26,116 @@ class RobotController:
         self.state = State()  # ロボットの状態を管理するインスタンス
 
         self.basic_move = BasicMove(self.state)
-        self.ball_placement = BallPlacement(
-            self.state, self.basic_move)  # エイリアスを作成
-        self.attack = Attack(self.state, self.basic_move)
+        self.ball_placement_algo = BallPlacement(  # Renamed to avoid conflict
+            self.state, self.basic_move)
+        self.attack_algo = Attack(self.state, self.basic_move)  # Renamed
         self.pass_ball = PassBall(self.state, self.basic_move)
-        self.ball_placement = self.ball_placement.ball_placement
-        self.attack = self.attack.attack
+
+        # algorithmのメソッドへのショートカット
+        self.ball_placement = self.ball_placement_algo.ball_placement
+        self.attack = self.attack_algo.attack
+
+        self.last_gui_send_time = 0
 
     def process_data_and_control(self, vision_data):
         """
         Visionデータとセンサーデータを取得し、制御ロジックを実行し、指令を送信する。
+        GUIへも定期的にデータを送信する。
         このメソッドはメインループから定期的に呼び出されることを想定。
         """
         # --- 担当ロボットのVisionデータを見つける ---
-        robot_data = None
+        robot_vision_data = None  # Visionから取得する当該ロボットのデータ
         if config.TEAM_COLOR == 'yellow':
             yellow_robots = vision_data.get('yellow_robots', {})
-            robot_data = yellow_robots.get(str(self.robot_id))  # 安全にキーを取得
-
+            robot_vision_data = yellow_robots.get(str(self.robot_id))
         elif config.TEAM_COLOR == 'blue':
             blue_robots = vision_data.get('blue_robots', {})
-            robot_data = blue_robots.get(str(self.robot_id))
+            robot_vision_data = blue_robots.get(str(self.robot_id))
 
         # ボールデータも必要に応じて取得
         orange_balls = vision_data.get('orange_balls', [])
-        ball_data = orange_balls[0] if orange_balls else None
+        # Visionから取得するボールのデータ
+        ball_vision_data = orange_balls[0] if orange_balls else None
 
         # 状態を更新
-        self.state.update(robot_data, ball_data)
-
-        if self.state.robot_pos is None or self.state.robot_dir_angle is None:
-            print(
-                f"[Robot {self.robot_id} Controller] Incomplete vision data.")
-            self.send_stop_command()
-            return
+        self.state.update(robot_vision_data, ball_vision_data)
 
         # --- センサーデータの取得と処理 ---
         latest_sensor_data = self.udp.get_latest_robot_sensor_data(
             self.robot_id)
 
+        print(latest_sensor_data)
+
         if latest_sensor_data:
             if latest_sensor_data.get("type") == "sensor_data":
-                # センサーデータを更新
                 self.state.photo_front = latest_sensor_data.get(
                     "photo", {}).get("front")
                 self.state.photo_back = latest_sensor_data.get(
                     "photo", {}).get("back")
-                # print(
-                #     f"[Robot {self.robot_id} Controller] Sensor Data: {latest_sensor_data}")
+                # ここで電圧も取得できれば更新する。今回はStateのダミー値を使用。
+                # self.state.voltage = latest_sensor_data.get("voltage", self.state.voltage)
+
+        # ダミー電圧を少し変動させる (デモ用)
+        self.state.voltage = round(11.8 + random.uniform(0, 0.4), 2)
+
+        # --- GUIへのデータ送信 ---
+        current_time = time.time()
+        if current_time - self.last_gui_send_time >= config.GUI_UPDATE_INTERVAL:
+            self.send_data_to_gui(ball_vision_data)  # ball_vision_data を渡す
+            self.last_gui_send_time = current_time
+
+        # --- 制御ロジック (以下は既存のロジックが実行される部分) ---
+        if self.state.robot_pos is None or self.state.robot_dir_angle is None:
+            # print(
+            #     f"[Robot {self.robot_id} Controller] Incomplete vision data for control. Sending stop.")
+            self.send_stop_command()
+            return
+
+        # ここに実際の戦略に基づいたコマンド生成ロジックが入る
+        # 例: if self.mode == 'attack': cmd = self.attack() ...
+        # 現状は process_data_and_control が直接コマンドを生成・送信していないため、
+        # StrategyManager から各アルゴリズムが呼ばれてコマンドが生成される想定。
+        # そのため、このメソッドでは主に状態更新とGUIへのデータ送信に注力する。
+
+    def send_data_to_gui(self, ball_vision_data):
+        """Stateオブジェクトの現在の情報とボール情報をGUIに送信する"""
+        # GUIに送るロボットステータス
+        robot_status_for_gui = {
+            "id": self.robot_id,
+            "pos": self.state.robot_pos,  # コート座標 [x, y] (m)
+            "angle": self.state.robot_dir_angle,  # グローバル向き (deg), X軸正0度, CCW正
+            "voltage": self.state.voltage,
+            "photo_front": self.state.photo_front,
+            "photo_back": self.state.photo_back,
+            # ロボットから見たボールの角度 (ロボット正面0度, CW正)。state.robot_ball_angleはCCW正なので符号反転
+            "ball_relative_angle": -self.state.robot_ball_angle if self.state.robot_ball_angle is not None else None,
+            "ball_relative_distance": self.state.ball_dis
+        }
+
+        # GUIに送るボール情報
+        # ball_vision_dataは 'pos': [x,y] を持つ辞書、またはNone
+        ball_pos_for_gui = ball_vision_data.get(
+            'pos') if ball_vision_data else None
+
+        gui_payload = {
+            "type": "gui_update",
+            "timestamp": int(time.time() * 1000),
+            # 現状は1ロボットコントローラあたり1ロボットなのでリストに1要素
+            "robots_status": [robot_status_for_gui],
+            "ball_pos": ball_pos_for_gui,  # コート座標 [x,y] (m) or None
+            "team_color": config.TEAM_COLOR  # チームカラーも送信
+        }
+        self.udp.send_to_gui(gui_payload)
 
     def send_command(self, cmd):
         command_data = cmd
-        command_data['cmd']['vision_angle'] = self.state.robot_dir_angle
+        # vision_angle はロボットが実際に持っている角度ではなく、Visionから観測された角度を使う
+        # これにより、ロボット内部の自己位置推定のズレを補正できる可能性がある
+        if self.state.robot_dir_angle is not None:
+            command_data['cmd']['vision_angle'] = self.state.robot_dir_angle
+        else:  # Visionからの角度がない場合は、コマンドで角度指定しないか、デフォルト値を入れる
+            command_data['cmd']['vision_angle'] = 0  # またはNoneなど、ロボット側が解釈できる値
+
         command_data['cmd']['stop'] = False
         self.udp.send_command(command_data, self.robot_id)
 
@@ -93,5 +153,9 @@ class RobotController:
                 "dribble": False,
             }
         }
+        # vision_angle は stop コマンドでは重要でない場合が多いが、
+        # 必要であれば最新の観測値を付与することも考えられる
+        if self.state.robot_dir_angle is not None:
+            command_data['cmd']['vision_angle'] = self.state.robot_dir_angle
+
         self.udp.send_command(command_data, self.robot_id)
-        # print(f"[{config.TEAM_COLOR.capitalize()} Robot Controller] Sent Stop Command.")

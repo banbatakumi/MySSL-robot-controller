@@ -23,7 +23,7 @@ class Attack:
                 self.state.robot_dir_angle, target_angle) * 1.5
             dribble = min(100, dribble)
 
-            kick = None
+            kick = 0
 
             face_speed = mymath.GapDeg(
                 self.state.robot_dir_angle, target_angle) * 0.01
@@ -42,6 +42,7 @@ class Attack:
                                         move_speed=move_speed,
                                         move_acce=5,
                                         face_angle=face_angle,
+                                        face_axis=face_axis,
                                         face_speed=face_speed,
                                         kick=kick,
                                         dribble=dribble
