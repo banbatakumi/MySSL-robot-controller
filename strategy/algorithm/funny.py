@@ -3,9 +3,6 @@ import config
 
 
 def circle_passing(id, rc, center_pos=[0, 0], radius=1.5):
-
-    num = config.NUM_ROBOTS
-    # 各ロボットの頂点座標を等間隔で計算
     circle_points = [
         (
             center_pos[0] + radius *
