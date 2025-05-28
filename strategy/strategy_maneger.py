@@ -1,5 +1,6 @@
 import config
-from strategy.algorithm.hex_passing import hex_passing
+import strategy.algorithm.funny as funny
+import strategy.algorithm.alignment as alignment
 
 
 class StrategyManager:
@@ -70,23 +71,24 @@ class StrategyManager:
         """
         メインの戦略プログラム
         """
-        for robot_id, rc in self.robot_controllers.items():
+        for id, rc in self.robot_controllers.items():
             if rc.state.robot_pos is None or rc.state.robot_dir_angle is None:
                 print(
-                    f"[Robot {robot_id} Maneger] Incomplete vision data.")
+                    f"[Robot {id} Maneger] Incomplete vision data.")
                 rc.send_stop_command()
                 continue
             command = None
             if self.game_mode == 'stop_game':
-                command = rc.basic_move.move_to_pos(
-                    (0.2 + robot_id * 0.2) * config.TEAM_SIDE, 0)
-
+                # command = alignment.liner_alignment(
+                #     id, rc, [-1.5, -1.5], [1.5, 1.5])
+                command = alignment.circle_alignment(
+                    id, rc, [0, 0], 1.5)
             elif self.game_mode == 'start_game':
                 if (rc.state.court_ball_pos is None):
                     return
-                command = hex_passing(rc, robot_id)
+                command = funny.circle_passing(id, rc, [0, 0], 1.5)
 
-                # if robot_id == 1:
+                # if id == 1:
                 #     command = rc.basic_move.move_to_pos(-0.5, 0)
                 #     # if rc.state.photo_front == False:
                 #     #     command = rc.pass_ball.receive_ball(-0.6, 0)
@@ -94,7 +96,7 @@ class StrategyManager:
                 #     #         command = rc.basic_move.catch_ball()
                 #     # else:
                 #     #     command = rc.pass_ball.pass_ball(0.6, 0)
-                # elif robot_id == 0:
+                # elif id == 0:
                 #     command = rc.attack()
                 #     # if rc.state.photo_front == False:
                 #     #     command = rc.pass_ball.receive_ball(0.6, 0)
@@ -106,7 +108,7 @@ class StrategyManager:
             elif self.game_mode == 'ball_placement':
                 if (rc.state.court_ball_pos is None):
                     return
-                if robot_id == self.get_closest_robot_to_ball():
+                if id == self.get_closest_robot_to_ball():
                     target_x = self._placement_target_pos[0]
                     target_y = self._placement_target_pos[1]
                     command = rc.ball_placement(target_x, target_y)
@@ -116,15 +118,15 @@ class StrategyManager:
             rc.send_command(command)
 
     def get_closest_robot_to_ball(self):
-        closest_robot_id = None
+        closest_id = None
         min_distance = float('inf')  # 初期値を無限大に設定
 
-        for robot_id, rc in self.robot_controllers.items():
+        for id, rc in self.robot_controllers.items():
             # ロボットの状態からボールとの距離を取得
             ball_distance = rc.state.ball_dis
 
             if ball_distance is not None and ball_distance < min_distance:
                 min_distance = ball_distance
-                closest_robot_id = robot_id
+                closest_id = id
 
-        return closest_robot_id
+        return closest_id
