@@ -71,6 +71,7 @@ class StrategyManager:
         """
         メインの戦略プログラム
         """
+        closest_robot_id = self.get_closest_robot_to_ball()
         for id, rc in self.robot_controllers.items():
             if rc.state.robot_pos is None or rc.state.robot_dir_angle is None:
                 print(
@@ -90,27 +91,10 @@ class StrategyManager:
                     return
                 command = funny.circle_passing(id, rc, [0, 0], 3)
 
-                # if id == 1:
-                #     command = rc.basic_move.move_to_pos(-0.5, 0)
-                #     # if rc.state.photo_front == False:
-                #     #     command = rc.pass_ball.receive_ball(-0.6, 0)
-                #     #     if rc.state.court_ball_pos[0] < 0 and rc.state.ball_dis < 0.4:
-                #     #         command = rc.basic_move.catch_ball()
-                #     # else:
-                #     #     command = rc.pass_ball.pass_ball(0.6, 0)
-                # elif id == 0:
-                #     command = rc.attack()
-                #     # if rc.state.photo_front == False:
-                #     #     command = rc.pass_ball.receive_ball(0.6, 0)
-                #     #     if rc.state.court_ball_pos[0] > 0 and rc.state.ball_dis < 0.4:
-                #     #         command = rc.basic_move.catch_ball()
-                #     # else:
-                #     #     command = rc.pass_ball.pass_ball(-0.6, 0)
-
             elif self.game_mode == 'ball_placement':
                 if (rc.state.court_ball_pos is None):
                     return
-                if id == self.get_closest_robot_to_ball():
+                if id == closest_robot_id:
                     target_x = self._placement_target_pos[0]
                     target_y = self._placement_target_pos[1]
                     command = rc.ball_placement(target_x, target_y)
@@ -121,14 +105,11 @@ class StrategyManager:
 
     def get_closest_robot_to_ball(self):
         closest_id = None
-        min_distance = float('inf')  # 初期値を無限大に設定
+        min_distance = float('inf')
 
         for id, rc in self.robot_controllers.items():
-            # ロボットの状態からボールとの距離を取得
-            ball_distance = rc.state.ball_dis
-
-            if ball_distance is not None and ball_distance < min_distance:
-                min_distance = ball_distance
+            if rc.state.ball_dis is not None and rc.state.ball_dis < min_distance:
+                min_distance = rc.state.ball_dis
                 closest_id = id
 
         return closest_id

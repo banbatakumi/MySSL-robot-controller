@@ -1,16 +1,3 @@
-# --- UDP 通信設定 ---
-# Vision からの受信ポート
-VISION_LISTEN_PORT = 50007
-
-# ゲームコントローラーからのコマンド受信ポート
-GAME_COMMAND_LISTEN_PORT = 50008
-
-# 待ち受けIPアドレス
-LISTEN_IP = "0.0.0.0"
-
-# 受信バッファサイズ
-BUFFER_SIZE = 65536
-
 TEAM_COLOR = 'yellow'  # 'yellow' or 'blue'
 
 TEAM_SIDE = 'left'  # 'left' or 'right'
@@ -40,17 +27,22 @@ for i in range(NUM_ROBOTS):
 
     ROBOTS_CONFIG.append(robot_config)
 
-# ソケットタイムアウト設定 (秒)
-SOCKET_TIMEOUT = 1.0
 
-# --- GUI 通信設定 ---
+# --- UDP 通信設定 ---
+LISTEN_IP = "0.0.0.0"
+VISION_LISTEN_PORT = 50007
+
+GAME_COMMAND_LISTEN_PORT = 50008
+
+BUFFER_SIZE = 65536
+
 # GUIがリッスンするIPアドレスとポート (コントローラーからの送信用)
 GUI_TARGET_IP = "127.0.0.1"
 GUI_TARGET_PORT = 50040
-
-# コントローラーがGUIからのコマンドをリッスンするIPアドレスとポート (GUIからの送信用)
-CONTROLLER_GUI_LISTEN_IP = "0.0.0.0"  # コントローラー側なので LISTEN_IP と同じでも可
 CONTROLLER_GUI_LISTEN_PORT = 50041
 
 # GUIの更新間隔 (秒)
 GUI_UPDATE_INTERVAL = 0.05  # 50ms
+
+# ソケットタイムアウト設定 (秒)
+SOCKET_TIMEOUT = 1.0
