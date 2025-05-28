@@ -1,4 +1,4 @@
-import config
+import params
 import math
 import lib.my_math as mymath
 import lib.pid as pid
@@ -10,15 +10,15 @@ class BasicMove:
         self.move_to_pos_pid = pid.PID(3, 0, 0.5)
 
     def move(self, move_angle=0, move_speed=0, move_acce=0, face_angle=0, face_speed=0, face_axis=0, dribble=0, kick=0):
-        move_speed = min(config.MAX_SPEED, move_speed)
+        move_speed = min(params.MAX_SPEED, move_speed)
         move_speed = max(0, move_speed)
         dribble = min(100, dribble)
         kick = min(100, kick)
 
         court_move_angle = mymath.NormalizeDeg180(
             move_angle + self.state.robot_dir_angle)
-        stop_width = config.COURT_WIDTH * 0.5 - 0.2
-        stop_height = config.COURT_HEIGHT * 0.5 - 0.2
+        stop_width = params.COURT_WIDTH * 0.5 - 0.2
+        stop_height = params.COURT_HEIGHT * 0.5 - 0.2
         if (self.state.robot_pos[0] > stop_width and abs(court_move_angle) < 90) or (self.state.robot_pos[0] < -stop_width and abs(court_move_angle) > 90) or (self.state.robot_pos[1] > stop_height and court_move_angle < 0) or (self.state.robot_pos[1] < -stop_height and court_move_angle > 0):
             move_speed = 0
             move_acce = 0
@@ -60,7 +60,7 @@ class BasicMove:
         move_angle = math.degrees(math.atan2(vector[1], vector[0])) * -1
 
         move_acce = 3
-        move_max_speed = config.MAX_SPEED
+        move_max_speed = params.MAX_SPEED
         face_speed = 0
         face_axis = 0
         dribble = 0

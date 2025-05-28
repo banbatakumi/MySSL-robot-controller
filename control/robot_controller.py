@@ -91,12 +91,6 @@ class RobotController:
             self.send_stop_command()
             return
 
-        # ここに実際の戦略に基づいたコマンド生成ロジックが入る
-        # 例: if self.mode == 'attack': cmd = self.attack() ...
-        # 現状は process_data_and_control が直接コマンドを生成・送信していないため、
-        # StrategyManager から各アルゴリズムが呼ばれてコマンドが生成される想定。
-        # そのため、このメソッドでは主に状態更新とGUIへのデータ送信に注力する。
-
     def send_data_to_gui(self, ball_vision_data):
         """Stateオブジェクトの現在の情報とボール情報をGUIに送信する"""
         # GUIに送るロボットステータス
@@ -153,8 +147,6 @@ class RobotController:
                 "dribble": False,
             }
         }
-        # vision_angle は stop コマンドでは重要でない場合が多いが、
-        # 必要であれば最新の観測値を付与することも考えられる
         if self.state.robot_dir_angle is not None:
             command_data['cmd']['vision_angle'] = self.state.robot_dir_angle
 

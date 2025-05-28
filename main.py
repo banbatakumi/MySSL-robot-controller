@@ -1,4 +1,5 @@
 import time
+import params
 import config  # config.py から設定を読み込む
 from lib.udp_communicator import UDPCommunicator  # libフォルダにあると仮定
 from control.robot_controller import RobotController
@@ -64,7 +65,7 @@ def main():
             strategy_mgr.update_strategy_and_control(vision_data)
             # print(vision_data)
 
-            time.sleep(config.CONTROL_LOOP_INTERVAL)
+            time.sleep(params.CONTROL_LOOP_INTERVAL)
 
     except KeyboardInterrupt:
         print("Controller stopped by user (KeyboardInterrupt).")

@@ -79,22 +79,16 @@ class StrategyManager:
                 continue
             command = None
             if self.game_mode == 'stop_game':
-                # if id <= 5:
-                #     command = alignment.liner_alignment(
-                #         id, rc, 0, 5, [-1, -1], [1, 1])
-                # else:
-                #     command = alignment.liner_alignment(
-                #         id, rc, 6, 10, [-1, 1], [1, -1])
                 if id <= 5:
-                    command = alignment.circle_alignment(
-                        id, rc, 0, 5, config.NUM_ROBOTS, [0, 0], 1.5)
+                    command = alignment.liner_alignment(
+                        id, rc, 0, 5, [-1, -1], [1, 1])
                 else:
-                    command = alignment.circle_alignment(
-                        id, rc, 6, 10, config.NUM_ROBOTS, [0, 0], 1)
+                    command = alignment.liner_alignment(
+                        id, rc, 6, 10, [-1, 1], [1, -1])
             elif self.game_mode == 'start_game':
                 if (rc.state.court_ball_pos is None):
                     return
-                command = funny.circle_passing(id, rc, [0, 0], 1.5)
+                command = funny.circle_passing(id, rc, [0, 0], 3)
 
                 # if id == 1:
                 #     command = rc.basic_move.move_to_pos(-0.5, 0)
