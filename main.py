@@ -46,9 +46,11 @@ def main():
                 strategy_mgr.handle_game_command(game_command_data)
 
             # 1.1 GUIからのコマンド処理 (StrategyManagerで処理)
-            # gui_command_data = udp_comm.get_latest_gui_command()
-            # if gui_command_data:
-            #     strategy_mgr.handle_gui_command(gui_command_data)
+            gui_command_data = udp_comm.get_latest_gui_command()
+            if gui_command_data:
+                strategy_mgr.handle_gui_command(gui_command_data)
+                print(
+                    f"[Main Loop] GUI command processed: {gui_command_data}")
 
             # 2. Visionデータの取得と戦略に基づく制御
             vision_data = udp_comm.get_latest_vision_data()

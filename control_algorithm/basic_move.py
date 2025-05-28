@@ -22,7 +22,6 @@ class BasicMove:
         if (self.state.robot_pos[0] > stop_width and abs(court_move_angle) < 90) or (self.state.robot_pos[0] < -stop_width and abs(court_move_angle) > 90) or (self.state.robot_pos[1] > stop_height and court_move_angle < 0) or (self.state.robot_pos[1] < -stop_height and court_move_angle > 0):
             move_speed = 0
             move_acce = 0
-            print(self.state.robot_pos, court_move_angle)
         return {
             "cmd": {
                 "move_angle": round(move_angle, 0),
