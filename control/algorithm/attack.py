@@ -11,7 +11,7 @@ class Attack:
         self.basic_move = basic_move
 
     def attack(self):
-        target_pos = [params.COURT_WIDTH * -0.5 * config.TEAM_SIDE - self.state.robot_pos[0],
+        target_pos = [params.COURT_WIDTH * 0.5 - self.state.robot_pos[0],
                       0 - self.state.robot_pos[1]]
 
         target_angle = math.degrees(math.atan2(

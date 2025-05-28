@@ -1,6 +1,7 @@
 import time
 import config
 import random  # For dummy voltage
+import lib.my_math as mymath
 
 from lib.udp_communicator import UDPCommunicator
 
@@ -125,9 +126,14 @@ class RobotController:
         self.target_move_speed = cmd['cmd']['move_speed']
 
         command_data = cmd
-        if self.state.robot_dir_angle is not None:
-            command_data['cmd']['vision_angle'] = self.state.robot_dir_angle
-        else:
+        command_data['cmd']['vision_angle'] = self.state.robot_dir_angle
+        if config.TEAM_SIDE == 'right':
+            command_data['cmd']['face_angle'] = mymath.NormalizeDeg180(
+                cmd['cmd']['face_angle'] + 180)
+            # command_data['cmd']['vision_angle'] = mymath.NormalizeDeg180(
+            #     cmd['cmd']['vision_angle'] + 180)
+            pass
+        if self.state.robot_dir_angle is None:
             command_data['cmd']['vision_angle'] = 0
 
         command_data['cmd']['stop'] = False

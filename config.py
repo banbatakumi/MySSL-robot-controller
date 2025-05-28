@@ -1,8 +1,6 @@
 TEAM_COLOR = 'yellow'  # 'yellow' or 'blue'
 
-TEAM_SIDE = 'left'  # 'left' or 'right'
-TEAM_SIDE = -1 if TEAM_SIDE == 'left' else 1  # 計算用係数
-
+TEAM_SIDE = 'right'  # 'left' or 'right'
 # ロボットごとの設定
 INITIAI_ROBOT_PORT = 50010
 NUM_ROBOTS = 11  # ロボットの数

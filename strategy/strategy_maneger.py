@@ -1,4 +1,5 @@
 import config
+import params
 import strategy.algorithm.funny as funny
 import strategy.algorithm.alignment as alignment
 
@@ -80,16 +81,34 @@ class StrategyManager:
                 continue
             command = None
             if self.game_mode == 'stop_game':
-                if id <= 5:
+                if id == 0:
+                    command = rc.basic_move.move_to_pos(
+                        params.COURT_WIDTH / -2 + params.ROBOT_D, 0)
+                elif id == 1:
+                    x = params.COURT_WIDTH / -2 + params.GOAL_AREA_HEIGHT + 1
+                    command = rc.basic_move.move_to_pos(x, 0)
+                elif id == 2:
+                    x = params.COURT_WIDTH / -2 + params.GOAL_AREA_HEIGHT + 1
+                    y = params.COURT_HEIGHT / 2 - 1
+                    command = rc.basic_move.move_to_pos(x, y)
+                elif id == 3:
+                    x = params.COURT_WIDTH / -2 + params.GOAL_AREA_HEIGHT + 1
+                    y = params.COURT_HEIGHT / -2 + 1
+                    command = rc.basic_move.move_to_pos(x, y)
+                elif id <= 7:
+                    x = params.COURT_WIDTH / -2 + params.GOAL_AREA_HEIGHT + 0.2
                     command = alignment.liner_alignment(
-                        id, rc, 0, 5, [-1, -1], [1, 1])
+                        id, rc, 4, 7, [x, -1], [x, 1])
                 else:
+                    x = -params.CENTEWR_CIRCLE_RADIUS - 0.2
                     command = alignment.liner_alignment(
-                        id, rc, 6, 10, [-1, 1], [1, -1])
+                        id, rc, 8, 10, [x, -0.5], [x, 0.5])
             elif self.game_mode == 'start_game':
                 if (rc.state.court_ball_pos is None):
                     return
-                command = funny.circle_passing(id, rc, [0, 0], 3)
+                # command = funny.circle_passing(id, rc, [0, 0], 3)
+                if id == closest_robot_id:
+                    command = rc.attack()
 
             elif self.game_mode == 'ball_placement':
                 if (rc.state.court_ball_pos is None):

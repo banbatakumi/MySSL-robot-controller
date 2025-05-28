@@ -1,5 +1,6 @@
 import math
 import lib.my_math as mymath
+import config
 
 
 class State:
@@ -26,10 +27,17 @@ class State:
 
     def update(self, robot_data, ball_data):
         # ロボットの位置と向きを更新
-        self.robot_pos = robot_data.get('pos') if robot_data else None
+        self.robot_pos = robot_data.get('pos')[:] if robot_data else None
         self.robot_dir_angle = robot_data.get('angle') if robot_data else None
 
         if self.robot_pos is not None and self.robot_dir_angle is not None:
+            if config.TEAM_SIDE == 'right':
+                # 右側チームの場合、角度を180度回転
+                self.robot_dir_angle = mymath.NormalizeDeg180(
+                    self.robot_dir_angle + 180
+                )
+                self.robot_pos[0] *= -1
+                self.robot_pos[1] *= -1
             # ロボットのコート中心からの角度と距離を計算
             self.robot_court_center_angle = mymath.NormalizeDeg180(
                 math.degrees(math.atan2(
@@ -42,9 +50,14 @@ class State:
             return
 
         # ボールの位置を更新
-        self.court_ball_pos = ball_data.get('pos') if ball_data else None
+        self.court_ball_pos = ball_data.get('pos')[:] if ball_data else None
 
         if self.court_ball_pos is not None and self.robot_pos is not None and self.robot_dir_angle is not None:
+            if config.TEAM_SIDE == 'right':
+                # 右側チームの場合、ボールの位置を反転
+                self.court_ball_pos[0] *= -1
+                self.court_ball_pos[1] *= -1
+
             # ロボットを基準としたボールの相対座標を計算
             self.ball_pos = [
                 self.court_ball_pos[0] - self.robot_pos[0],
