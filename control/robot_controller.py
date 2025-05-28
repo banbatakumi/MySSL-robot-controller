@@ -4,11 +4,11 @@ import random  # For dummy voltage
 
 from lib.udp_communicator import UDPCommunicator
 
-from state import State
-from control_algorithm.basic_move import BasicMove
-from control_algorithm.ball_placement import BallPlacement
-from control_algorithm.attack import Attack
-from control_algorithm.pass_ball import PassBall
+from control.state import State
+from control.algorithm.basic_move import BasicMove
+from control.algorithm.ball_placement import BallPlacement
+from control.algorithm.attack import Attack
+from control.algorithm.pass_ball import PassBall
 
 
 class RobotController:

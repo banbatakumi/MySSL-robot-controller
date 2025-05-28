@@ -1,5 +1,5 @@
 import config
-import math
+from strategy.algorithm.hex_passing import hex_passing
 
 
 class StrategyManager:
@@ -70,18 +70,6 @@ class StrategyManager:
         """
         メインの戦略プログラム
         """
-        RADIUS = 1.5  # 六角形の半径（中心から頂点までの距離、適宜調整）
-        CENTER_X = 0
-        CENTER_Y = 0
-
-        # 六角形の頂点座標を計算
-        hex_points = [
-            (
-                CENTER_X + RADIUS * math.cos(math.radians(30 * i)),
-                CENTER_Y + RADIUS * math.sin(math.radians(30 * i))
-            )
-            for i in range(config.NUM_ROBOTS)
-        ]
         for robot_id, rc in self.robot_controllers.items():
             if rc.state.robot_pos is None or rc.state.robot_dir_angle is None:
                 print(
@@ -96,6 +84,7 @@ class StrategyManager:
             elif self.game_mode == 'start_game':
                 if (rc.state.court_ball_pos is None):
                     return
+                command = hex_passing(rc, robot_id)
 
                 # if robot_id == 1:
                 #     command = rc.basic_move.move_to_pos(-0.5, 0)
@@ -114,14 +103,6 @@ class StrategyManager:
                 #     # else:
                 #     #     command = rc.pass_ball.pass_ball(-0.6, 0)
 
-                # 六角形の頂点を使ってパス
-                my_pos = hex_points[robot_id % config.NUM_ROBOTS]
-                next_pos = hex_points[(robot_id + 1) % config.NUM_ROBOTS]
-
-                if rc.state.photo_front == False:
-                    command = rc.pass_ball.receive_ball(*my_pos)
-                else:
-                    command = rc.pass_ball.pass_ball(*next_pos)
             elif self.game_mode == 'ball_placement':
                 if (rc.state.court_ball_pos is None):
                     return
