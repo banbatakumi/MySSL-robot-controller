@@ -91,7 +91,6 @@ class StrategyManager:
             elif self.game_mode == 'start_game':
                 if (rc.state.court_ball_pos is None):
                     return
-                # command = funny.circle_passing(id, rc, [0, 0], 3)
                 if id == closest_robot_to_ball:
                     command = rc.attack()
 
@@ -102,5 +101,6 @@ class StrategyManager:
                     id, rc, self._placement_target_pos, closest_robot_to_ball)
 
             if command is None:
+                rc.send_stop_command()
                 continue
             rc.send_command(command)

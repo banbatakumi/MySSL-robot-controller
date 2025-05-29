@@ -9,7 +9,7 @@ class BallPlacement:
 
     def ball_placement(self, target_x, target_y):
         if (abs(self.state.court_ball_pos[0] - target_x) < params.PLACEMENT_R and abs(self.state.court_ball_pos[1] - target_y) < params.PLACEMENT_R):
-            if self.state.ball_dis < params.PLACEMENT_R:
+            if self.state.ball_dis < params.PLACEMENT_AVOID_R:
                 return self.basic_move.move(move_angle=180,
                                             move_speed=0.5,
                                             move_acce=0.5,
