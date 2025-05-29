@@ -15,7 +15,7 @@ if TEAM_COLOR == 'blue':
     GUI_LISTEN_PORT = 50014
 
 
-NUM_ROBOTS = 11  # ロボットの数
+NUM_ROBOTS = 6  # ロボットの数
 
 # ロボットごとの設定
 ROBOTS_CONFIG = []
