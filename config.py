@@ -1,8 +1,20 @@
 TEAM_COLOR = 'yellow'  # 'yellow' or 'blue'
 
-TEAM_SIDE = 'right'  # 'left' or 'right'
-# ロボットごとの設定
-INITIAI_ROBOT_PORT = 50010
+TEAM_SIDE = 'left'  # 'left' or 'right'
+
+INITIAI_ROBOT_PORT = 50020
+VISION_LISTEN_PORT = 50007
+GAME_COMMAND_LISTEN_PORT = 50009
+GUI_TARGET_PORT = 50011
+GUI_LISTEN_PORT = 50012
+if TEAM_COLOR == 'blue':
+    INITIAI_ROBOT_PORT = 50050
+    VISION_LISTEN_PORT = 50008
+    GAME_COMMAND_LISTEN_PORT = 500010
+    GUI_TARGET_PORT = 50013
+    GUI_LISTEN_PORT = 50014
+
+
 NUM_ROBOTS = 11  # ロボットの数
 
 # ロボットごとの設定
@@ -17,7 +29,6 @@ for i in range(NUM_ROBOTS):
         "enabled": True
     }
 
-    # simを使う場合は以下をコメントアウト
     # if i == 0:
     #     robot_config["ip"] = "192.168.2.110"  # ロボット0のIP
     # elif i == 1:
@@ -28,19 +39,14 @@ for i in range(NUM_ROBOTS):
 
 # --- UDP 通信設定 ---
 LISTEN_IP = "0.0.0.0"
-VISION_LISTEN_PORT = 50007
-
-GAME_COMMAND_LISTEN_PORT = 50008
 
 BUFFER_SIZE = 65536
 
-# GUIがリッスンするIPアドレスとポート (コントローラーからの送信用)
+# GUIのポート
 GUI_TARGET_IP = "127.0.0.1"
-GUI_TARGET_PORT = 50040
-CONTROLLER_GUI_LISTEN_PORT = 50041
+
+# ソケットタイムアウト
+SOCKET_TIMEOUT = 1.0  # s
 
 # GUIの更新間隔 (秒)
-GUI_UPDATE_INTERVAL = 0.05  # 50ms
-
-# ソケットタイムアウト設定 (秒)
-SOCKET_TIMEOUT = 1.0
+GUI_UPDATE_INTERVAL = 0.05  # s

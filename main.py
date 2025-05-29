@@ -3,7 +3,7 @@ import params
 import config  # config.py から設定を読み込む
 from lib.udp_communicator import UDPCommunicator  # libフォルダにあると仮定
 from control.robot_controller import RobotController
-from strategy.strategy_maneger import StrategyManager
+from strategy.strategy_manager import StrategyManager
 
 
 def main():

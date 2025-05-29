@@ -25,13 +25,13 @@ class State:
         self.robot_court_center_angle = None
         self.robot_court_center_dis = None
 
-    def update(self, robot_data, ball_data):
+    def update(self, robot_data, ball_data, enable_point_symmetry=True):
         # ロボットの位置と向きを更新
         self.robot_pos = robot_data.get('pos')[:] if robot_data else None
         self.robot_dir_angle = robot_data.get('angle') if robot_data else None
 
         if self.robot_pos is not None and self.robot_dir_angle is not None:
-            if config.TEAM_SIDE == 'right':
+            if config.TEAM_SIDE == 'right' and enable_point_symmetry:
                 # 右側チームの場合、角度を180度回転
                 self.robot_dir_angle = mymath.NormalizeDeg180(
                     self.robot_dir_angle + 180
@@ -53,7 +53,7 @@ class State:
         self.court_ball_pos = ball_data.get('pos')[:] if ball_data else None
 
         if self.court_ball_pos is not None and self.robot_pos is not None and self.robot_dir_angle is not None:
-            if config.TEAM_SIDE == 'right':
+            if config.TEAM_SIDE == 'right' and enable_point_symmetry:
                 # 右側チームの場合、ボールの位置を反転
                 self.court_ball_pos[0] *= -1
                 self.court_ball_pos[1] *= -1

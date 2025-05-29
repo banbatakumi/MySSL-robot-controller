@@ -82,10 +82,10 @@ class UDPCommunicator:
             self._gui_command_sock = socket.socket(
                 socket.AF_INET, socket.SOCK_DGRAM)
             self._gui_command_sock.bind(
-                (config.LISTEN_IP, config.CONTROLLER_GUI_LISTEN_PORT))
+                (config.LISTEN_IP, config.GUI_LISTEN_PORT))
             self._gui_command_sock.settimeout(config.SOCKET_TIMEOUT)
             print(
-                f"GUI Command UDP server bound to {config.LISTEN_IP}:{config.CONTROLLER_GUI_LISTEN_PORT}")
+                f"GUI Command UDP server bound to {config.LISTEN_IP}:{config.GUI_LISTEN_PORT}")
 
             return True
         except socket.error as e:

@@ -82,6 +82,7 @@ class RobotController:
         # --- GUIへのデータ送信 ---
         current_time = time.time()
         if current_time - self.last_gui_send_time >= config.GUI_UPDATE_INTERVAL:
+            self.state.update(robot_vision_data, ball_vision_data, False)
             self.send_data_to_gui(ball_vision_data)  # ball_vision_data を渡す
             self.last_gui_send_time = current_time
 
@@ -130,9 +131,6 @@ class RobotController:
         if config.TEAM_SIDE == 'right':
             command_data['cmd']['face_angle'] = mymath.NormalizeDeg180(
                 cmd['cmd']['face_angle'] + 180)
-            # command_data['cmd']['vision_angle'] = mymath.NormalizeDeg180(
-            #     cmd['cmd']['vision_angle'] + 180)
-            pass
         if self.state.robot_dir_angle is None:
             command_data['cmd']['vision_angle'] = 0
 
