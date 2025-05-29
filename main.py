@@ -62,7 +62,7 @@ def main():
             for rc in robot_controllers.values():
                 rc.process_data_and_control(vision_data)
 
-            strategy_mgr.update_strategy_and_control(vision_data)
+            strategy_mgr.update_strategy_and_control()
             # print(vision_data)
 
             time.sleep(params.CONTROL_LOOP_INTERVAL)

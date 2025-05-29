@@ -17,8 +17,8 @@ class BasicMove:
 
         court_move_angle = mymath.NormalizeDeg180(
             move_angle + self.state.robot_dir_angle)
-        stop_width = params.COURT_WIDTH * 0.5 - 0.2
-        stop_height = params.COURT_HEIGHT * 0.5 - 0.2
+        stop_width = params.COURT_WIDTH * 0.5 - 0.1
+        stop_height = params.COURT_HEIGHT * 0.5 - 0.1
         if (self.state.robot_pos[0] > stop_width and abs(court_move_angle) < 90) or (self.state.robot_pos[0] < -stop_width and abs(court_move_angle) > 90) or (self.state.robot_pos[1] > stop_height and court_move_angle < 0) or (self.state.robot_pos[1] < -stop_height and court_move_angle > 0):
             move_speed = 0
             move_acce = 0

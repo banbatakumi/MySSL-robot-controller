@@ -26,12 +26,6 @@ class Attack:
 
             kick = 0
 
-            face_speed = mymath.GapDeg(
-                self.state.robot_dir_angle, target_angle) * 0.01
-
-            face_speed = min(mymath.PI, face_speed)
-            face_speed = max(mymath.PI * 0.2, face_speed)
-
             move_speed = 0
             if mymath.GapDeg(self.state.robot_dir_angle, target_angle) < 10:
                 move_speed = 1
@@ -44,7 +38,7 @@ class Attack:
                                         move_acce=5,
                                         face_angle=face_angle,
                                         face_axis=face_axis,
-                                        face_speed=face_speed,
+                                        face_speed=mymath.HALF_PI,
                                         kick=kick,
                                         dribble=dribble
                                         )

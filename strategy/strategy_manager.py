@@ -3,6 +3,7 @@ import strategy.algorithm.funny as funny
 import strategy.algorithm.alignment as alignment
 from strategy.mode.stop_game import stop_game
 from strategy.mode.ball_placement import ball_placement
+from strategy.mode.start_game import StartGame
 from strategy.utils import Utils
 
 
@@ -10,6 +11,7 @@ class StrategyManager:
     def __init__(self, robot_controllers):
         self.robot_controllers = robot_controllers
         self.utils = Utils(robot_controllers)
+        self.start_game = StartGame(self.utils)
 
         self.game_mode = 'stop'
 
@@ -46,6 +48,7 @@ class StrategyManager:
                     self.game_mode = 'ball_placement'
                 else:
                     rc.send_stop_command()
+                    self.game_mode = 'stop'
             else:
                 for rc in self.robot_controllers.values():
                     rc.send_stop_command()
@@ -74,10 +77,7 @@ class StrategyManager:
                 for rc in self.robot_controllers.values():
                     rc.send_stop_command()
 
-    def update_strategy_and_control(self, vision_data):
-        """
-        メインの戦略プログラム
-        """
+    def update_strategy_and_control(self):
         closest_robot_to_ball = self.utils.get_closest_robot_to_ball()
         for id, rc in self.robot_controllers.items():
             if rc.state.robot_pos is None or rc.state.robot_dir_angle is None:
@@ -91,8 +91,7 @@ class StrategyManager:
             elif self.game_mode == 'start_game':
                 if (rc.state.court_ball_pos is None):
                     return
-                if id == closest_robot_to_ball:
-                    command = rc.attack()
+                command = self.start_game.run(id, rc, closest_robot_to_ball)
 
             elif self.game_mode == 'ball_placement':
                 if (rc.state.court_ball_pos is None):

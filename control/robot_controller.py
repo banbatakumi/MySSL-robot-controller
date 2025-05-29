@@ -61,7 +61,7 @@ class RobotController:
         ball_vision_data = orange_balls[0] if orange_balls else None
 
         # 状態を更新
-        self.state.update(robot_vision_data, ball_vision_data)
+        self.state.update(robot_vision_data, ball_vision_data, True)
 
         # --- センサーデータの取得と処理 ---
         latest_sensor_data = self.udp.get_latest_robot_sensor_data(
@@ -73,8 +73,8 @@ class RobotController:
                     "photo", {}).get("front")
                 self.state.photo_back = latest_sensor_data.get(
                     "photo", {}).get("back")
-                # ここで電圧も取得できれば更新する。今回はStateのダミー値を使用。
-                # self.state.voltage = latest_sensor_data.get("voltage", self.state.voltage)
+                # self.state.voltage = latest_sensor_data.get(
+                #     "voltage", self.state.voltage)
 
         # ダミー電圧を少し変動させる (デモ用)
         self.state.voltage = round(11.8 + random.uniform(0, 0.4), 2)
@@ -82,8 +82,7 @@ class RobotController:
         # --- GUIへのデータ送信 ---
         current_time = time.time()
         if current_time - self.last_gui_send_time >= config.GUI_UPDATE_INTERVAL:
-            self.state.update(robot_vision_data, ball_vision_data, False)
-            self.send_data_to_gui(ball_vision_data)  # ball_vision_data を渡す
+            self.send_data_to_gui(robot_vision_data, ball_vision_data)
             self.last_gui_send_time = current_time
 
         # --- 制御ロジック (以下は既存のロジックが実行される部分) ---
@@ -93,20 +92,20 @@ class RobotController:
             self.send_stop_command()
             return
 
-    def send_data_to_gui(self, ball_vision_data):
+    def send_data_to_gui(self, robot_vision_data, ball_vision_data):
         """Stateオブジェクトの現在の情報とボール情報をGUIに送信する"""
+        if robot_vision_data is None:
+            return
         # GUIに送るロボットステータス
         robot_status_for_gui = {
             "id": self.robot_id,
-            "pos": self.state.robot_pos,
-            "angle": self.state.robot_dir_angle,
+            "pos": robot_vision_data.get('pos'),
+            "angle": robot_vision_data.get('angle'),
             "target_move_angle": self.target_move_angle,
             "target_move_speed": self.target_move_speed,
             "voltage": self.state.voltage,
             "photo_front": self.state.photo_front,
-            "photo_back": self.state.photo_back,
-            "ball_relative_angle": -self.state.robot_ball_angle if self.state.robot_ball_angle is not None else None,
-            "ball_relative_distance": self.state.ball_dis
+            "photo_back": self.state.photo_back
         }
 
         # GUIに送るボール情報
@@ -127,10 +126,11 @@ class RobotController:
         self.target_move_speed = cmd['cmd']['move_speed']
 
         command_data = cmd
-        command_data['cmd']['vision_angle'] = self.state.robot_dir_angle
         if config.TEAM_SIDE == 'right':
             command_data['cmd']['face_angle'] = mymath.NormalizeDeg180(
                 cmd['cmd']['face_angle'] + 180)
+
+        command_data['cmd']['vision_angle'] = self.state.robot_dir_angle
         if self.state.robot_dir_angle is None:
             command_data['cmd']['vision_angle'] = 0
 
