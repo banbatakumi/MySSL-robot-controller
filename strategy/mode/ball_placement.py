@@ -1,13 +1,14 @@
 import math
 import lib.my_math as mymath
 import params
+import config
 
 
-def ball_placement(id, rc, target_pos, closest_robot_to_ball):
+def ball_placement(id, rc, target_team_color, target_pos, closest_robot_to_ball):
     dx = rc.state.robot_pos[0] - target_pos[0]
     dy = rc.state.robot_pos[1] - target_pos[1]
     placement_dis = math.hypot(dx, dy)
-    if id == closest_robot_to_ball:
+    if id == closest_robot_to_ball and target_team_color == config.TEAM_COLOR:
         return rc.ball_placement(target_pos[0], target_pos[1])
     else:
         if rc.state.ball_dis < 0.5:

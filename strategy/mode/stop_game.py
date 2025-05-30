@@ -31,7 +31,7 @@ def stop_game(id, rc):
         else:
             x = -params.CENTEWR_CIRCLE_RADIUS - 0.2
             return alignment.liner_alignment(
-                id, rc, 4, 5, [x, -0.2], [x, 0.2])
+                id, rc, [4, 5], [x, -0.2], [x, 0.2])
     else:
         if id == 0:
             x = -params.COURT_WIDTH / 2 + params.ROBOT_D
@@ -50,8 +50,8 @@ def stop_game(id, rc):
         elif id <= 7:
             x = -params.COURT_WIDTH / 2 + params.GOAL_AREA_HEIGHT + 0.2
             return alignment.liner_alignment(
-                id, rc, 4, 7, [x, -1], [x, 1])
+                id, rc, [4, 7], [x, -1], [x, 1])
         else:
             x = -params.CENTEWR_CIRCLE_RADIUS - 0.2
             return alignment.liner_alignment(
-                id, rc, 8, 10, [x, -0.5], [x, 0.5])
+                id, rc, [8, 10], [x, -0.5], [x, 0.5])

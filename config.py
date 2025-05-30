@@ -1,6 +1,6 @@
-TEAM_COLOR = 'yellow'  # 'yellow' or 'blue'
+TEAM_COLOR = 'blue'  # 'yellow' or 'blue'
 
-TEAM_SIDE = 'left'  # 'left' or 'right'
+TEAM_SIDE = 'right'  # 'left' or 'right'
 
 INITIAI_ROBOT_PORT = 50020
 VISION_LISTEN_PORT = 50007

@@ -21,12 +21,9 @@ class StrategyManager:
         """
         cmd_type = command_data.get("type")
         cmd = command_data.get("command")
-        target_team_color = command_data.get("team_color")
+        self.target_team_color = command_data.get("team_color")
         print(
-            f"[StrategyManager] Received command: {cmd_type}, {cmd}, {target_team_color}")
-
-        if target_team_color is not None and target_team_color != config.TEAM_COLOR:
-            return
+            f"[StrategyManager] Received command: {cmd_type}, {cmd}, {self.target_team_color}")
 
         if cmd_type == "game_command":
             if cmd == "stop_game":
@@ -41,14 +38,10 @@ class StrategyManager:
                 for rc in self.robot_controllers.values():
                     rc.send_stop_command()
             elif cmd == "place_ball":
-                if target_team_color == config.TEAM_COLOR:
-                    target_x = command_data.get("x")
-                    target_y = command_data.get("y")
-                    self._placement_target_pos = [target_x, target_y]
-                    self.game_mode = 'ball_placement'
-                else:
-                    rc.send_stop_command()
-                    self.game_mode = 'stop'
+                target_x = command_data.get("x")
+                target_y = command_data.get("y")
+                self._placement_target_pos = [target_x, target_y]
+                self.game_mode = 'ball_placement'
             else:
                 for rc in self.robot_controllers.values():
                     rc.send_stop_command()
@@ -91,13 +84,13 @@ class StrategyManager:
             elif self.game_mode == 'start_game':
                 if (rc.state.court_ball_pos is None):
                     return
-                command = self.start_game.run(id, rc, closest_robot_to_ball)
+                command = self.start_game.run(id, rc)
 
             elif self.game_mode == 'ball_placement':
                 if (rc.state.court_ball_pos is None):
                     return
                 command = ball_placement(
-                    id, rc, self._placement_target_pos, closest_robot_to_ball)
+                    id, rc, self.target_team_color, self._placement_target_pos, closest_robot_to_ball)
 
             if command is None:
                 rc.send_stop_command()
