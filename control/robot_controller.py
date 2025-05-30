@@ -26,7 +26,7 @@ class RobotController:
 
         self.state = State()  # ロボットの状態を管理するインスタンス
 
-        self.basic_move = BasicMove(self.state)
+        self.basic_move = BasicMove(self.state, self.robot_id)
         self.ball_placement_algo = BallPlacement(  # Renamed to avoid conflict
             self.state, self.basic_move)
         self.attack_algo = Attack(self.state, self.basic_move)  # Renamed

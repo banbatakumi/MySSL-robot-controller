@@ -1,12 +1,14 @@
 import params
+import config
 import math
 import lib.my_math as mymath
 import lib.pid as pid
 
 
 class BasicMove:
-    def __init__(self, state):
+    def __init__(self, state, robot_id):
         self.state = state
+        self.robot_id = robot_id
         self.move_to_pos_pid = pid.PID(3, 0, 0.5)
 
     def move(self, move_angle=0, move_speed=0, move_acce=0, face_angle=0, face_speed=0, face_axis=0, dribble=0, kick=0):
@@ -17,9 +19,34 @@ class BasicMove:
 
         court_move_angle = mymath.NormalizeDeg180(
             move_angle + self.state.robot_dir_angle)
-        stop_width = params.COURT_WIDTH * 0.5 - 0.1
-        stop_height = params.COURT_HEIGHT * 0.5 - 0.1
-        if (self.state.robot_pos[0] > stop_width and abs(court_move_angle) < 90) or (self.state.robot_pos[0] < -stop_width and abs(court_move_angle) > 90) or (self.state.robot_pos[1] > stop_height and court_move_angle < 0) or (self.state.robot_pos[1] < -stop_height and court_move_angle > 0):
+        outer_line_stop_x = params.COURT_WIDTH * 0.5 - 0.1
+        outer_line_stop_y = params.COURT_HEIGHT * 0.5 - 0.1
+
+        stop = (
+            (self.state.robot_pos[0] > outer_line_stop_x and abs(court_move_angle) < 90) or
+            (self.state.robot_pos[0] < -outer_line_stop_x and abs(court_move_angle) > 90) or
+            (self.state.robot_pos[1] > outer_line_stop_y and court_move_angle < 0) or
+            (self.state.robot_pos[1] < -
+             outer_line_stop_y and court_move_angle > 0)
+        )
+
+        goal_area_x = params.COURT_WIDTH * 0.5 - params.GOAL_AREA_HEIGHT - 0.1
+        goal_area_y = params.GOAL_AREA_WIDTH * 0.5 + 0.1
+        in_own_goal_area = (
+            self.state.robot_pos[0] < -goal_area_x and
+            abs(self.state.robot_pos[1]) < goal_area_y
+        )
+        in_opp_goal_area = (
+            self.state.robot_pos[0] > goal_area_x and
+            abs(self.state.robot_pos[1]) < goal_area_y
+        )
+        if stop:
+            move_speed = 0
+            move_acce = 0
+        elif in_own_goal_area and mymath.GapDeg(court_move_angle, self.state.own_goal_angle) < 90 and not self.robot_id == config.GOALKEEPER_ID:
+            move_speed = 0
+            move_acce = 0
+        elif in_opp_goal_area and mymath.GapDeg(court_move_angle, self.state.opp_goal_angle) < 90 and not self.robot_id == config.GOALKEEPER_ID:
             move_speed = 0
             move_acce = 0
         return {

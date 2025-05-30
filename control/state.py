@@ -1,6 +1,7 @@
 import math
 import lib.my_math as mymath
 import config
+import params
 
 
 class State:
@@ -17,13 +18,17 @@ class State:
         self.ball_angle = None
         self.ball_court_center_angle = None
         self.ball_court_center_dis = None
-
         self.robot_ball_angle = None
         self.robot_ball_pos = None
+
         self.robot_pos = None
         self.robot_dir_angle = None
         self.robot_court_center_angle = None
         self.robot_court_center_dis = None
+        self.own_goal_angle = None
+        self.own_goal_dis = None
+        self.opp_goal_angle = None
+        self.opp_goal_dis = None
 
     def update(self, robot_data, ball_data, enable_point_symmetry=True):
         # ロボットの位置と向きを更新
@@ -46,6 +51,21 @@ class State:
             self.robot_court_center_dis = math.hypot(
                 self.robot_pos[0], self.robot_pos[1]
             )
+
+            own_goal_pos = [-params.COURT_WIDTH * 0.5 - self.robot_pos[0],
+                            0 - self.robot_pos[1]]
+
+            self.own_goal_angle = math.degrees(
+                math.atan2(own_goal_pos[1], own_goal_pos[0])
+            ) * -1
+            self.own_goal_dis = math.hypot(own_goal_pos[0], own_goal_pos[1])
+
+            opp_goal_pos = [params.COURT_WIDTH * 0.5 - self.robot_pos[0],
+                            0 - self.robot_pos[1]]
+            self.opp_goal_angle = math.degrees(
+                math.atan2(opp_goal_pos[1], opp_goal_pos[0])
+            ) * -1
+            self.opp_goal_dis = math.hypot(opp_goal_pos[0], opp_goal_pos[1])
         else:
             return
 
