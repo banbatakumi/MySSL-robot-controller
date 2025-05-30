@@ -2,11 +2,15 @@ import math
 import params
 import config
 import strategy.algorithm.alignment as alignment
+import lib.timer as Timer
+
+DEFENSE_BALL_KICK_TIME = 1
 
 
 class StartGame:
     def __init__(self, utils):
         self.utils = utils
+        self.defense_ball_kick_timer = Timer.Timer()
 
     def run(self, id, rc):
         if config.NUM_ROBOTS == 2:
@@ -19,10 +23,20 @@ class StartGame:
                 return rc.attack()
         elif config.NUM_ROBOTS <= 6:
             if id == 0:
+                in_goal_area = (
+                    rc.state.court_ball_pos[0] < -params.COURT_WIDTH / 2 + params.GOAL_AREA_HEIGHT and
+                    abs(rc.state.court_ball_pos[1]
+                        ) < params.GOAL_AREA_WIDTH / 2
+                )
+                if in_goal_area:
+                    if self.defense_ball_kick_timer.read() > DEFENSE_BALL_KICK_TIME:
+                        return rc.attack()
+                else:
+                    self.defense_ball_kick_timer.set()
                 x = -params.COURT_WIDTH / 2 + params.ROBOT_D
                 y = rc.state.court_ball_pos[1]
                 y = max(min(y, params.GOAL_WIDTH / 2), -params.GOAL_WIDTH / 2)
-                return rc.basic_move.move_to_pos(x, y)
+                return rc.basic_move.move_to_pos(x, y, rc.state.ball_angle)
 
             elif rc.state.court_ball_pos[0] < 0:
                 avaiable_ids = [1, 2, 3, 4, 5]
