@@ -23,7 +23,6 @@ class StartGame:
         if config.NUM_ROBOTS == 2:  # RCJ仕様
             self.df = RollState()
             self.of = RollState()
-            self.mf = RollState()
         elif config.NUM_ROBOTS <= 6:  # DivB仕様
             self.fw = RollState()
             self.lsh = RollState()
@@ -50,43 +49,34 @@ class StartGame:
             avaiable_ids = [0, 1]
             used_ids = []
 
-            if rc.state.court_ball_pos[0] < 0:
-                # ディフェンス重点配置
-                self.of.id = self.utils.get_closest_robot_to_ball(avaiable_ids)
-                used_ids.append(self.of.id)
+            self.of.id = self.utils.get_frontmost_robot(avaiable_ids)
+            used_ids.append(self.of.id)
 
-                self.df.id = [i for i in avaiable_ids if i not in used_ids]
+            if id == self.of.id:
+                self.of.pos = rc.state.robot_pos
+                self.of.photo_front = rc.state.photo_front
+                if self.df.photo_front or rc.state.court_ball_pos[0] < -params.COURT_WIDTH * 0.25:
+                    target_pos = [params.COURT_WIDTH * 0.5 - params.GOAL_AREA_HEIGHT -
+                                  params.LINE_STOP_OFFSET*1.5, params.GOAL_AREA_WIDTH * 0.5 + params.LINE_STOP_OFFSET*1.5]
+                    return rc.pass_ball.receive_ball(self.df.pos, [0.2, 0])
+                else:
+                    return rc.attack()
 
-                if id == self.df.id:
-                    self.df.pos = rc.state.robot_pos
+            else:
+                self.df.pos = rc.state.robot_pos
+                self.df.photo_front = rc.state.photo_front
+                if rc.state.photo_front:
+                    return rc.pass_ball.pass_ball(self.of.pos)
+                else:
+                    if rc.state.court_ball_pos[0] < -params.COURT_WIDTH * 0.25:
+                        if self.defense_ball_kick_timer.read() > 0.5:
+                            return rc.basic_move.catch_ball()
+                    else:
+                        self.defense_ball_kick_timer.set()
                     x = -params.COURT_WIDTH * 0.5 + params.ROBOT_D
                     y = mymath.clip(
                         rc.state.court_ball_pos[1], -params.GOAL_WIDTH * 0.5, params.GOAL_WIDTH * 0.5)
                     return rc.basic_move.move_to_pos(x, y)
-                elif id == self.of.id:
-                    self.of.pos = rc.state.robot_pos
-                    if rc.state.photo_front:
-                        if rc.state.robot_pos[0] > -1:
-                            return rc.attack()
-                        else:
-                            return rc.pass_ball.pass_ball(self.df.pos)
-                    else:
-                        return rc.basic_move.catch_ball()
-            else:
-                self.of.id = self.utils.get_frontmost_robot(avaiable_ids)
-                used_ids.append(self.of.id)
-
-                self.mf.id = [i for i in avaiable_ids if i not in used_ids]
-                if id == self.of.id:
-                    self.of.pos = rc.state.robot_pos
-                    if rc.state.photo_front:
-                        if rc.state.robot_pos[0] > params.COURT_WIDTH * 0.5 - params.GOAL_AREA_HEIGHT - 1:
-                            return rc.attack()
-                        else:
-                            return rc.pass_ball.pass_ball(self.mf.pos)
-                    else:
-                        return rc.basic_move.catch_ball()
-                elif id == self.mf.id:
 
         elif config.NUM_ROBOTS <= 6:
             avaiable_ids = [0, 1, 2, 3, 4, 5]
@@ -123,14 +113,14 @@ class StartGame:
                 used_ids.append(self.cb.id)
                 remain_ids = [i for i in avaiable_ids if i not in used_ids]
 
-                # オフェンシブミドルフィールダー
+                # オフェンシブミッドフィールダー
                 omf_pos = [0, 0]
                 self.omf.id = self.utils.get_closest_robot_to_target(
                     omf_pos, remain_ids)
                 used_ids.append(self.omf.id)
                 remain_ids = [i for i in avaiable_ids if i not in used_ids]
 
-                # ディフェンシブミドルフィールダー
+                # ディフェンシブミッドフィールダー
                 self.dmf.id = self.utils.get_closest_robot_to_ball(remain_ids)
                 used_ids.append(self.dmf.id)
                 remain_ids = [i for i in avaiable_ids if i not in used_ids]
@@ -205,7 +195,7 @@ class StartGame:
                 used_ids.append(self.cb.id)
                 remain_ids = [i for i in avaiable_ids if i not in used_ids]
 
-                # ディフェンスミドルフィールダー
+                # ディフェンスミッドフィールダー
                 dmf_target_pos = [rc.state.court_ball_pos[0] - params.COURT_WIDTH / 4,
                                   rc.state.court_ball_pos[1] * 0.5]
                 self.dmf.id = self.utils.get_closest_robot_to_target(

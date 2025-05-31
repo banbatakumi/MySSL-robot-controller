@@ -46,10 +46,10 @@ class BasicMove:
         if stop:
             move_speed = 0
             move_acce = 0
-        elif in_own_goal_area and mymath.GapDeg(court_move_angle, self.state.own_goal_angle) < 90 and not self.robot_id == config.GK_ID:
+        elif in_own_goal_area and mymath.GapDeg(court_move_angle, self.state.own_goal_angle) < 90 and not self.robot_id == config.GK_ID and not config.NUM_ROBOTS <= 2:
             move_speed = 0
             move_acce = 0
-        elif in_opp_goal_area and mymath.GapDeg(court_move_angle, self.state.opp_goal_angle) < 90 and not self.robot_id == config.GK_ID:
+        elif in_opp_goal_area and mymath.GapDeg(court_move_angle, self.state.opp_goal_angle) < 90 and not self.robot_id == config.GK_ID and not config.NUM_ROBOTS <= 2:
             move_speed = 0
             move_acce = 0
         return {
@@ -74,7 +74,7 @@ class BasicMove:
 
         return self.move(move_angle=0,
                          move_speed=move_speed,
-                         move_acce=1,
+                         move_acce=3,
                          face_angle=self.state.ball_angle,
                          dribble=dribble)
 
@@ -89,18 +89,18 @@ class BasicMove:
         # 目標とする移動方向 (コート座標系での角度)
         move_angle = math.degrees(math.atan2(vector[1], vector[0])) * -1
 
-        move_acce = 3
+        move_acce = 2
         move_max_speed = params.MAX_SPEED
         face_speed = 0
         face_axis = 0
         dribble = 0
         if with_ball == True:
-            move_max_speed = 0.5
+            move_max_speed = 0.75
             dribble = distance * 200
             if (mymath.GapDeg(move_angle, self.state.robot_dir_angle) > 20):
                 move_max_speed = 0
                 dribble = 100
-            move_acce = 1.5
+            move_acce = 0.5
             face_speed = mymath.HALF_PI
             face_axis = 1
             face_angle = move_angle

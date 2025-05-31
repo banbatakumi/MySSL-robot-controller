@@ -10,7 +10,7 @@ class PID:
         self.integral = 0.0
         self.last_time = None  # 前回の更新時刻を記録
 
-    def update(self, target, imput):
+    def update(self, target, input):
         current_time = time.time()  # 現在の時刻を取得（秒単位）
         if self.last_time is None:
             # 初回呼び出し時は dt を 0 に設定
@@ -22,7 +22,7 @@ class PID:
         self.last_time = current_time  # 現在の時刻を次回のために記録
 
         # PID 制御の計算
-        error = target - imput
+        error = target - input
         self.integral += error * dt
         derivative = (error - self.last_error) / dt if dt > 0 else 0.0
 
