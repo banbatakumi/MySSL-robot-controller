@@ -16,3 +16,7 @@ def GapDeg(deg1, deg2):
     if diff > 180:
         diff = 360 - diff
     return diff
+
+
+def clip(value, lower, upper):
+    return max(min(value, upper), lower)

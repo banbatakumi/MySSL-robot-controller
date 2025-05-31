@@ -54,6 +54,8 @@ class RobotController:
         elif config.TEAM_COLOR == 'blue':
             blue_robots = vision_data.get('blue_robots', {})
             robot_vision_data = blue_robots.get(str(self.robot_id))
+        # print(
+        #     f"[Robot {self.robot_id} Controller] Processing vision data: {robot_vision_data}")
 
         # ボールデータも必要に応じて取得
         orange_balls = vision_data.get('orange_balls', [])
@@ -75,6 +77,8 @@ class RobotController:
                     "photo", {}).get("back")
                 # self.state.voltage = latest_sensor_data.get(
                 #     "voltage", self.state.voltage)
+                print(
+                    f"[Robot {self.robot_id} Controller] Sensor data received: {latest_sensor_data}")
 
         # ダミー電圧を少し変動させる (デモ用)
         self.state.voltage = round(11.8 + random.uniform(0, 0.4), 2)

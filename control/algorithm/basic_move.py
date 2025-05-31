@@ -4,6 +4,8 @@ import math
 import lib.my_math as mymath
 import lib.pid as pid
 
+LINE_STOP_OFFSET = 0.15  # 停止ラインからのオフセット
+
 
 class BasicMove:
     def __init__(self, state, robot_id):
@@ -19,8 +21,8 @@ class BasicMove:
 
         court_move_angle = mymath.NormalizeDeg180(
             move_angle + self.state.robot_dir_angle)
-        outer_line_stop_x = params.COURT_WIDTH * 0.5 - 0.1
-        outer_line_stop_y = params.COURT_HEIGHT * 0.5 - 0.1
+        outer_line_stop_x = params.COURT_WIDTH * 0.5 - LINE_STOP_OFFSET
+        outer_line_stop_y = params.COURT_HEIGHT * 0.5 - LINE_STOP_OFFSET
 
         stop = (
             (self.state.robot_pos[0] > outer_line_stop_x and abs(court_move_angle) < 90) or
@@ -30,8 +32,9 @@ class BasicMove:
              outer_line_stop_y and court_move_angle > 0)
         )
 
-        goal_area_x = params.COURT_WIDTH * 0.5 - params.GOAL_AREA_HEIGHT - 0.1
-        goal_area_y = params.GOAL_AREA_WIDTH * 0.5 + 0.1
+        goal_area_x = params.COURT_WIDTH * 0.5 - \
+            params.GOAL_AREA_HEIGHT - LINE_STOP_OFFSET
+        goal_area_y = params.GOAL_AREA_WIDTH * 0.5 + LINE_STOP_OFFSET
         in_own_goal_area = (
             self.state.robot_pos[0] < -goal_area_x and
             abs(self.state.robot_pos[1]) < goal_area_y
@@ -43,10 +46,10 @@ class BasicMove:
         if stop:
             move_speed = 0
             move_acce = 0
-        elif in_own_goal_area and mymath.GapDeg(court_move_angle, self.state.own_goal_angle) < 90 and not self.robot_id == config.GOALKEEPER_ID:
+        elif in_own_goal_area and mymath.GapDeg(court_move_angle, self.state.own_goal_angle) < 90 and not self.robot_id == config.GK_ID:
             move_speed = 0
             move_acce = 0
-        elif in_opp_goal_area and mymath.GapDeg(court_move_angle, self.state.opp_goal_angle) < 90 and not self.robot_id == config.GOALKEEPER_ID:
+        elif in_opp_goal_area and mymath.GapDeg(court_move_angle, self.state.opp_goal_angle) < 90 and not self.robot_id == config.GK_ID:
             move_speed = 0
             move_acce = 0
         return {

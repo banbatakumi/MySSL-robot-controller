@@ -1,6 +1,6 @@
-TEAM_COLOR = 'yellow'  # 'yellow' or 'blue'
+TEAM_COLOR = 'blue'  # 'yellow' or 'blue'
 
-TEAM_SIDE = 'left'  # 'left' or 'right'
+TEAM_SIDE = 'right'  # 'left' or 'right'
 
 INITIAI_ROBOT_PORT = 50020
 VISION_LISTEN_PORT = 50007
@@ -16,7 +16,7 @@ if TEAM_COLOR == 'blue':
 
 
 NUM_ROBOTS = 6  # ロボットの数
-GOALKEEPER_ID = 0  # ゴールキーパーのロボットID
+GK_ID = 0  # ゴールキーパーのロボットID
 
 # ロボットごとの設定
 ROBOTS_CONFIG = []
