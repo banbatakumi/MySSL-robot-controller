@@ -66,7 +66,7 @@ class BasicMove:
         }
 
     def catch_ball(self):
-        move_speed = self.state.ball_dis * 1.2
+        move_speed = self.state.ball_dis * 1.3
         move_speed = max(0.4, move_speed)
         dribble = 0
         if self.state.ball_dis < 0.4 and mymath.GapDeg(self.state.ball_angle, self.state.robot_dir_angle) < 30:

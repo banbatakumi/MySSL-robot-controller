@@ -16,8 +16,9 @@ class State:
         self.ball_pos = None
         self.ball_dis = None
         self.ball_angle = None
-        self.ball_court_center_angle = None
-        self.ball_court_center_dis = None
+        self.ball_vel = None
+        self.ball_vel_angle = None
+        self.ball_val_mag = None
         self.robot_ball_angle = None
         self.robot_ball_pos = None
 
@@ -43,6 +44,7 @@ class State:
                 )
                 self.robot_pos[0] *= -1
                 self.robot_pos[1] *= -1
+
             # ロボットのコート中心からの角度と距離を計算
             self.robot_court_center_angle = mymath.NormalizeDeg180(
                 math.degrees(math.atan2(
@@ -52,6 +54,7 @@ class State:
                 self.robot_pos[0], self.robot_pos[1]
             )
 
+            # 両ゴールの位置と角度を計算
             own_goal_pos = [-params.COURT_WIDTH * 0.5 - self.robot_pos[0],
                             0 - self.robot_pos[1]]
 
@@ -98,13 +101,3 @@ class State:
                 self.ball_dis * math.sin(math.radians(self.robot_ball_angle)),
                 self.ball_dis * math.cos(math.radians(self.robot_ball_angle)),
             ]
-
-            # ボールのコート中心からの角度と距離を計算
-            self.ball_court_center_angle = mymath.NormalizeDeg180(
-                math.degrees(
-                    math.atan2(self.court_ball_pos[1], self.court_ball_pos[0])
-                ) * -1 + 180
-            )
-            self.ball_court_center_dis = math.hypot(
-                self.court_ball_pos[0], self.court_ball_pos[1]
-            )

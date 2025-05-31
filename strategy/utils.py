@@ -52,3 +52,22 @@ class Utils:
                         closest_id = id
 
         return closest_id
+
+    def get_frontmost_robot(self, id_list=None):
+        frontmost_id = None
+        max_x = float('-inf')
+
+        if id_list is None:
+            for id, rc in self.robot_controllers.items():
+                if rc.state.robot_pos is not None and rc.state.robot_pos[0] > max_x:
+                    max_x = rc.state.robot_pos[0]
+                    frontmost_id = id
+        else:
+            for id in id_list:
+                rc = self.robot_controllers.get(id)
+                if rc is not None and rc.state.robot_pos is not None:
+                    if rc.state.robot_pos[0] > max_x:
+                        max_x = rc.state.robot_pos[0]
+                        frontmost_id = id
+
+        return frontmost_id

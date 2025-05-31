@@ -85,6 +85,8 @@ class StrategyManager:
                 if (rc.state.court_ball_pos is None):
                     return
                 command = self.start_game.run(id, rc)
+                # command = funny.circle_passing(
+                #     id, rc, [0, 0], radius=2)
 
             elif self.game_mode == 'ball_placement':
                 if (rc.state.court_ball_pos is None):
