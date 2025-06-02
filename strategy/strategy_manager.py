@@ -16,9 +16,6 @@ class StrategyManager:
         self.game_mode = 'stop'
 
     def handle_game_command(self, command_data):
-        """
-        外部からのゲームコマンドを処理し、ロボットの動作モードを切り替える。
-        """
         cmd_type = command_data.get("type")
         cmd = command_data.get("command")
         self.target_team_color = command_data.get("team_color")
@@ -48,9 +45,6 @@ class StrategyManager:
                 return
 
     def handle_gui_command(self, command_data):
-        """
-        GUIからのコマンド
-        """
         cmd_type = command_data.get("type")
         cmd = command_data.get("command")
         print(
@@ -70,7 +64,8 @@ class StrategyManager:
                 for rc in self.robot_controllers.values():
                     rc.send_stop_command()
 
-    def update_strategy_and_control(self):
+    def update_strategy_and_control(self, vision_data):
+        self.utils.update_vision_data(vision_data)
         closest_robot_to_ball = self.utils.get_closest_robot_to_ball()
         for id, rc in self.robot_controllers.items():
             if rc.state.robot_pos is None or rc.state.robot_dir_angle is None:

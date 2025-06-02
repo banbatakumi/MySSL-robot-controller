@@ -15,7 +15,7 @@ if TEAM_COLOR == 'blue':
     GUI_LISTEN_PORT = 50014
 
 
-NUM_ROBOTS = 11  # ロボットの数
+NUM_ROBOTS = 6  # ロボットの数
 GK_ID = 0  # ゴールキーパーのロボットID
 
 # ロボットごとの設定
