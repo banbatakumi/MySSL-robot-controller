@@ -110,7 +110,7 @@ class StartGame:
             remain_ids = [i for i in avaiable_ids if i not in used_ids]
 
             # フォワード
-            fw_target_pos = [mymath.clip(rc.state.court_ball_pos[0], rc.state.court_ball_pos[0] * 0.5, params.COURT_WIDTH * 0.5),
+            fw_target_pos = [mymath.clip(rc.state.court_ball_pos[0], 0, params.COURT_WIDTH * 0.5),
                              rc.state.court_ball_pos[1]]
             self.fw.id = self.utils.get_closest_robot_to_target(
                 fw_target_pos, remain_ids)
@@ -150,9 +150,12 @@ class StartGame:
                 return rc.basic_move.move_to_pos(dmf_target_pos[0], dmf_target_pos[1], rc.state.ball_angle)
             elif id == self.omf.id:
                 self.omf.pos = rc.state.robot_pos
+                self.omf.photo_front = rc.state.photo_front
                 if rc.state.photo_front:
                     return rc.pass_ball.pass_ball(self.fw.pos)
-                elif omf_target_pos == rc.state.court_ball_pos and not self.fw.photo_front:
+                elif self.fw.photo_front:
+                    return rc.basic_move.move_to_pos(0, 0)
+                elif omf_target_pos == rc.state.court_ball_pos:
                     return rc.basic_move.catch_ball()
                 else:
                     return rc.basic_move.move_to_pos(omf_target_pos[0], omf_target_pos[1], rc.state.ball_angle)
@@ -169,7 +172,7 @@ class StartGame:
                 self.fw.pos = rc.state.robot_pos
                 self.fw.photo_front = rc.state.photo_front
                 if rc.state.photo_front:
-                    if abs(rc.state.robot_pos[1]) < params.GOAL_AREA_WIDTH * 0.5 and rc.state.opp_goal_dis < params.MAX_KICK_DIS:
+                    if abs(rc.state.robot_pos[1]) < params.GOAL_AREA_WIDTH * 0.5 and rc.state.opp_goal_dis < params.MAX_SHOOT_DIS:
                         return rc.attack()
                     else:
                         return rc.pass_ball.pass_ball(self.sh.pos)
