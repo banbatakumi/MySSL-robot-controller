@@ -21,10 +21,12 @@ class BasicMove:
 
         court_move_angle = mymath.NormalizeDeg180(
             move_angle + self.state.robot_dir_angle)
+
+        # コート外周の白線で止まるか
         outer_line_stop_x = params.COURT_WIDTH * 0.5 - LINE_STOP_OFFSET
         outer_line_stop_y = params.COURT_HEIGHT * 0.5 - LINE_STOP_OFFSET
 
-        stop = (
+        outor_line_area = (
             (self.state.robot_pos[0] > outer_line_stop_x and abs(court_move_angle) < 90) or
             (self.state.robot_pos[0] < -outer_line_stop_x and abs(court_move_angle) > 90) or
             (self.state.robot_pos[1] > outer_line_stop_y and court_move_angle < 0) or
@@ -32,9 +34,10 @@ class BasicMove:
              outer_line_stop_y and court_move_angle > 0)
         )
 
+        # ゴールエリア内で止まるか
         goal_area_x = params.COURT_WIDTH * 0.5 - \
-            params.GOAL_AREA_HEIGHT - LINE_STOP_OFFSET
-        goal_area_y = params.GOAL_AREA_WIDTH * 0.5 + LINE_STOP_OFFSET
+            params.GOAL_AREA_HEIGHT
+        goal_area_y = params.GOAL_AREA_WIDTH * 0.5
         in_own_goal_area = (
             self.state.robot_pos[0] < -goal_area_x and
             abs(self.state.robot_pos[1]) < goal_area_y
@@ -43,15 +46,52 @@ class BasicMove:
             self.state.robot_pos[0] > goal_area_x and
             abs(self.state.robot_pos[1]) < goal_area_y
         )
-        if stop:
-            move_speed = 0
-            move_acce = 0
-        elif in_own_goal_area and mymath.GapDeg(court_move_angle, self.state.own_goal_angle) < 90 and not self.robot_id == config.GK_ID and not config.NUM_ROBOTS <= 2:
-            move_speed = 0
-            move_acce = 0
-        elif in_opp_goal_area and mymath.GapDeg(court_move_angle, self.state.opp_goal_angle) < 90 and not self.robot_id == config.GK_ID and not config.NUM_ROBOTS <= 2:
-            move_speed = 0
-            move_acce = 0
+        goal_stop_area_x = goal_area_x - LINE_STOP_OFFSET
+        goal_stop_area_y = goal_area_y + LINE_STOP_OFFSET
+        in_own_goal_stop_area = (
+            self.state.robot_pos[0] < -goal_stop_area_x and
+            abs(self.state.robot_pos[1]) < goal_stop_area_y
+        )
+        in_opp_goal_stop_area = (
+            self.state.robot_pos[0] > goal_stop_area_x and
+            abs(self.state.robot_pos[1]) < goal_stop_area_y
+        )
+        if not self.robot_id == config.GK_ID and not config.NUM_ROBOTS <= 2:
+            if outor_line_area:
+                # move_speed = 0
+                # move_acce = 0
+                pass
+            elif in_own_goal_area:
+                move_angle = self.state.own_goal_angle - 180 - self.state.robot_dir_angle
+                move_speed = params.MAX_SPEED
+                move_acce = 0
+            elif in_opp_goal_area:
+                move_angle = self.state.opp_goal_angle - 180 - self.state.robot_dir_angle
+                move_speed = params.MAX_SPEED
+                move_acce = 0
+            elif in_own_goal_stop_area and mymath.GapDeg(court_move_angle, self.state.own_goal_angle) < 90:
+                if self.state.robot_pos[0] > -goal_area_x:
+                    if court_move_angle < 0:
+                        move_angle = 90
+                    else:
+                        move_angle = -90
+                else:
+                    move_angle = 0
+                move_angle -= self.state.robot_dir_angle
+                move_speed = 0.5
+                move_acce = 2
+            elif in_opp_goal_stop_area and mymath.GapDeg(court_move_angle, self.state.opp_goal_angle) < 90:
+                if self.state.robot_pos[0] > -goal_area_x:
+                    if court_move_angle < 0:
+                        move_angle = 90
+                    else:
+                        move_angle = -90
+                else:
+                    move_angle = 180
+                move_angle -= self.state.robot_dir_angle
+                move_speed = 0.5
+                move_acce = 2
+
         return {
             "cmd": {
                 "move_angle": round(move_angle, 0),

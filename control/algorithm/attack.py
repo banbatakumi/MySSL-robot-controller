@@ -1,7 +1,3 @@
-import math
-import lib.my_math as mymath
-import config
-import params
 import lib.my_math as mymath
 
 
