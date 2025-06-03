@@ -65,8 +65,17 @@ class StrategyManager:
                     rc.send_stop_command()
 
     def update_strategy_and_control(self, vision_data):
+        ball_data = vision_data.get('orange_balls', [])[0]
+        court_ball_pos = list(ball_data.get('pos'))
+        if config.TEAM_SIDE == 'right':
+            # 右側チームの場合、ボール位置を反転
+            court_ball_pos[0] *= -1
+            court_ball_pos[1] *= -1
         self.utils.update_vision_data(vision_data)
-        closest_robot_to_ball = self.utils.get_closest_robot_to_ball()
+        closest_robot_to_ball = self.utils.get_closest_robot_to_ball(
+            court_ball_pos)
+
+        self.start_game.update_roll(court_ball_pos)
         for id, rc in self.robot_controllers.items():
             if rc.state.robot_pos is None or rc.state.robot_dir_angle is None:
                 print(
