@@ -202,20 +202,21 @@ class StartGame:
                     #     self.omf.pos, self.fw.target_pos)
                     return rc.pass_ball.receive_ball(self.omf.pos, self.fw.target_pos)
             elif id == config.GK_ID:
-                in_goal_area = (
-                    rc.state.court_ball_pos[0] < -params.COURT_WIDTH * 0.5 + params.GOAL_AREA_HEIGHT and
-                    abs(rc.state.court_ball_pos[1]
-                        ) < params.GOAL_AREA_WIDTH * 0.5
-                )
-                if in_goal_area:
-                    if self.defense_ball_kick_timer.read() > DEFENSE_BALL_KICK_TIME:
-                        return rc.attack()
-                else:
-                    self.defense_ball_kick_timer.set()
-                x = -params.COURT_WIDTH * 0.5 + params.ROBOT_D
-                y = mymath.clip(
-                    rc.state.court_ball_pos[1], -params.GOAL_WIDTH * 0.5, params.GOAL_WIDTH * 0.5)
-                return rc.basic_move.move_to_pos(x, y)
+                # in_goal_area = (
+                #     rc.state.court_ball_pos[0] < -params.COURT_WIDTH * 0.5 + params.GOAL_AREA_HEIGHT and
+                #     abs(rc.state.court_ball_pos[1]
+                #         ) < params.GOAL_AREA_WIDTH * 0.5
+                # )
+                # if in_goal_area:
+                #     if self.defense_ball_kick_timer.read() > DEFENSE_BALL_KICK_TIME:
+                #         return rc.attack()
+                # else:
+                #     self.defense_ball_kick_timer.set()
+                # x = -params.COURT_WIDTH * 0.5 + params.ROBOT_D
+                # y = mymath.clip(
+                #     rc.state.court_ball_pos[1], -params.GOAL_WIDTH * 0.5, params.GOAL_WIDTH * 0.5)
+                # return rc.basic_move.move_to_pos(x, y)
+                return rc.goal_keeper.run()
 
             # if id == config.GK_ID:
             #     in_goal_area = (

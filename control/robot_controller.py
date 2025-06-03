@@ -9,6 +9,7 @@ from control.state import State
 from control.algorithm.basic_move import BasicMove
 from control.algorithm.ball_placement import BallPlacement
 from control.algorithm.attack import Attack
+from control.algorithm.goal_keeper import GoalKeeper
 from control.algorithm.pass_ball import PassBall
 
 
@@ -27,14 +28,14 @@ class RobotController:
         self.state = State()  # ロボットの状態を管理するインスタンス
 
         self.basic_move = BasicMove(self.state, self.robot_id)
-        self.ball_placement_algo = BallPlacement(  # Renamed to avoid conflict
-            self.state, self.basic_move)
-        self.attack_algo = Attack(self.state, self.basic_move)  # Renamed
+        self.ball_placement = BallPlacement(self.state, self.basic_move)
+        self.attack = Attack(self.state, self.basic_move)
+        self.goal_keeper = GoalKeeper(self.state, self.basic_move)
         self.pass_ball = PassBall(self.state, self.basic_move)
 
         # algorithmのメソッドへのショートカット
-        self.ball_placement = self.ball_placement_algo.ball_placement
-        self.attack = self.attack_algo.attack
+        self.ball_placement = self.ball_placement.ball_placement
+        self.attack = self.attack.attack
 
         self.last_gui_send_time = 0
         self.target_move_angle = 0

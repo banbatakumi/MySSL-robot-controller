@@ -1,6 +1,7 @@
-TEAM_COLOR = 'yellow'  # 'yellow' or 'blue'
+import os
 
-TEAM_SIDE = 'left'  # 'left' or 'right'
+TEAM_COLOR = os.environ.get('TEAM_COLOR', 'yellow')  # 'yellow' or 'blue'
+TEAM_SIDE = os.environ.get('TEAM_SIDE', 'left')      # 'left' or 'right'
 
 INITIAI_ROBOT_PORT = 50020
 VISION_LISTEN_PORT = 50007

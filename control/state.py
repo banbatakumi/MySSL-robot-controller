@@ -1,5 +1,6 @@
 import math
 import lib.my_math as mymath
+import lib.timer as timer
 import config
 import params
 
@@ -13,12 +14,13 @@ class State:
         # ビジョン情報
         self.court_ball_pos = None
 
+        self.prev_ball_pos = None
         self.ball_pos = None
         self.ball_dis = None
         self.ball_angle = None
         self.ball_vel = None
         self.ball_vel_angle = None
-        self.ball_val_mag = None
+        self.ball_vel_mag = None
         self.robot_ball_angle = None
         self.robot_ball_pos = None
 
@@ -30,6 +32,8 @@ class State:
         self.own_goal_dis = None
         self.opp_goal_angle = None
         self.opp_goal_dis = None
+
+        self.dt_timer = timer.Timer()
 
     def update(self, robot_data, ball_data, enable_point_symmetry=True):
         # ロボットの位置と向きを更新
@@ -80,6 +84,24 @@ class State:
                 # 右側チームの場合、ボールの位置を反転
                 self.court_ball_pos[0] *= -1
                 self.court_ball_pos[1] *= -1
+
+            # ボール速度の計算
+            if self.prev_ball_pos is not None:
+                dt = self.dt_timer.read()
+                if dt > 0:
+                    dx = self.court_ball_pos[0] - self.prev_ball_pos[0]
+                    dy = self.court_ball_pos[1] - self.prev_ball_pos[1]
+                    self.ball_vel = [dx / dt, dy / dt]
+                    self.ball_vel_mag = math.hypot(
+                        self.ball_vel[0], self.ball_vel[1])
+                    self.ball_vel_angle = math.degrees(
+                        math.atan2(self.ball_vel[1], self.ball_vel[0]))
+                else:
+                    self.ball_vel = [0.0, 0.0]
+                    self.ball_vel_mag = 0.0
+                    self.ball_vel_angle = 0.0
+            self.prev_ball_pos = self.court_ball_pos.copy()
+            self.dt_timer.set()
 
             # ロボットを基準としたボールの相対座標を計算
             self.ball_pos = [
