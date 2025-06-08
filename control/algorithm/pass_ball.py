@@ -7,7 +7,7 @@ class PassBall:
     def __init__(self, state, basic_move):
         self.state = state
         self.basic_move = basic_move
-        self.receive_ball_pid = pid.PID(6, 0, 1)
+        self.receive_ball_pid = pid.PID(3, 0, 0.5)
 
     def pass_ball(self, target_pos):
         dx = target_pos[0] - self.state.robot_pos[0]
@@ -20,7 +20,7 @@ class PassBall:
         if mymath.GapDeg(target_dir, self.state.robot_dir_angle) < 3:
             kick = target_dis * 65
         return self.basic_move.move(face_angle=target_dir,
-                                    face_speed=mymath.PI,
+                                    face_speed=mymath.HALF_PI,
                                     face_axis=1,
                                     dribble=dribble,
                                     kick=kick,)
@@ -66,7 +66,6 @@ class PassBall:
         move_dist = math.hypot(move_vec[0], move_vec[1])
         # print(f"move_angle: {move_angle}, move_dist: {move_dist}")
 
-        # 顔の向きはボール方向
         dx = origin_pos[0] - self.state.robot_pos[0]
         dy = origin_pos[1] - self.state.robot_pos[1]
         face_angle = math.degrees(math.atan2(dy, dx)) * -1
@@ -79,5 +78,5 @@ class PassBall:
             move_acce=0,
             face_angle=face_angle,
             face_speed=mymath.PI,
-            dribble=50
+            dribble=75
         )

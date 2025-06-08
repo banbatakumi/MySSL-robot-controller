@@ -29,7 +29,7 @@ class Attack:
                                         move_acce=5,
                                         face_angle=face_angle,
                                         face_axis=face_axis,
-                                        face_speed=mymath.PI,
+                                        face_speed=mymath.HALF_PI,
                                         kick=kick,
                                         dribble=dribble
                                         )

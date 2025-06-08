@@ -139,7 +139,7 @@ class StartGame:
                 if self.df.photo_front or rc.state.court_ball_pos[0] < 0:
                     target_pos = [params.COURT_WIDTH * 0.5 - params.GOAL_AREA_HEIGHT -
                                   params.LINE_STOP_OFFSET*1.5, params.GOAL_AREA_WIDTH * 0.5 + params.LINE_STOP_OFFSET*1.5]
-                    return rc.pass_ball.receive_ball(self.df.pos, [0.2, 0])
+                    return rc.pass_ball.receive_ball(self.df.pos, [0.4, 0.2])
                 else:
                     return rc.attack()
 

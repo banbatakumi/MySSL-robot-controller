@@ -40,21 +40,78 @@ class State:
         self.ball_lost_timeout = 0.3  # 秒
         self.robot_lost_timeout = 0.3  # 秒
 
+        self.kalman_robot_pos = None
+        self.kalman_robot_vel = None
+        self.kalman_robot_P = [[1, 0], [0, 1]]
+        self.kalman_robot_Q = [[1e-4, 0], [0, 1e-4]]
+        self.kalman_robot_R = [[1e-3, 0], [0, 1e-3]]
+
+        self.kalman_ball_pos = None
+        self.kalman_ball_vel = None
+        self.kalman_P = [[1, 0], [0, 1]]  # 共分散行列
+        self.kalman_Q = [[1e-4, 0], [0, 1e-4]]  # プロセスノイズ
+        self.kalman_R = [[1e-3, 0], [0, 1e-3]]  # 観測ノイズ
+
     def update(self, robot_data, ball_data, enable_point_symmetry=True):
         # ロボットの位置と向きを更新
+        # --- ロボットの位置と向きの更新 ---
+        observed_robot = False
         if robot_data and robot_data.get('pos') is not None and robot_data.get('angle') is not None:
             self.robot_pos = list(robot_data.get('pos'))
             self.robot_dir_angle = robot_data.get('angle')
             self.robot_lost_timer.set()
             self.robot_data_valid = True
+            observed_robot = True
         else:
-            # データが来ていない場合、一定時間は前回値を保持
             if self.robot_lost_timer.read() < self.robot_lost_timeout:
                 self.robot_data_valid = True
             else:
                 self.robot_pos = None
                 self.robot_dir_angle = None
                 self.robot_data_valid = False
+
+        # --- カルマンフィルタによるロボット位置補正 ---
+        dt = self.dt_timer.read() if hasattr(self, "dt_timer") else 0.05
+        if self.kalman_robot_pos is None:
+            if self.robot_pos is not None:
+                self.kalman_robot_pos = self.robot_pos.copy()
+                self.kalman_robot_vel = [0.0, 0.0]
+            else:
+                self.kalman_robot_pos = [0.0, 0.0]
+                self.kalman_robot_vel = [0.0, 0.0]
+
+        if observed_robot and self.robot_pos is not None:
+            # 観測あり：カルマンフィルタ更新
+            pred_pos = [
+                self.kalman_robot_pos[0] + self.kalman_robot_vel[0] * dt,
+                self.kalman_robot_pos[1] + self.kalman_robot_vel[1] * dt
+            ]
+            z = self.robot_pos
+            Kx = self.kalman_robot_P[0][0] / \
+                (self.kalman_robot_P[0][0] + self.kalman_robot_R[0][0])
+            Ky = self.kalman_robot_P[1][1] / \
+                (self.kalman_robot_P[1][1] + self.kalman_robot_R[1][1])
+            self.kalman_robot_pos[0] = pred_pos[0] + Kx * (z[0] - pred_pos[0])
+            self.kalman_robot_pos[1] = pred_pos[1] + Ky * (z[1] - pred_pos[1])
+            if hasattr(self, "prev_robot_pos") and self.prev_robot_pos is not None and dt > 0:
+                self.kalman_robot_vel[0] = (
+                    self.kalman_robot_pos[0] - self.prev_robot_pos[0]) / dt
+                self.kalman_robot_vel[1] = (
+                    self.kalman_robot_pos[1] - self.prev_robot_pos[1]) / dt
+            self.kalman_robot_P[0][0] = (
+                1 - Kx) * self.kalman_robot_P[0][0] + self.kalman_robot_Q[0][0]
+            self.kalman_robot_P[1][1] = (
+                1 - Ky) * self.kalman_robot_P[1][1] + self.kalman_robot_Q[1][1]
+        else:
+            # 観測なし：予測のみ
+            self.kalman_robot_pos[0] += self.kalman_robot_vel[0] * dt
+            self.kalman_robot_pos[1] += self.kalman_robot_vel[1] * dt
+            self.kalman_robot_P[0][0] += self.kalman_robot_Q[0][0]
+            self.kalman_robot_P[1][1] += self.kalman_robot_Q[1][1]
+
+        # 推定値で上書き
+        self.robot_pos = self.kalman_robot_pos.copy()
+        self.prev_robot_pos = self.kalman_robot_pos.copy()
 
         if self.robot_pos is not None and self.robot_dir_angle is not None:
             if config.TEAM_SIDE == 'right' and enable_point_symmetry:
@@ -92,11 +149,12 @@ class State:
         else:
             return
 
-        # ボールの位置を更新
+        observed = False
         if ball_data and ball_data.get('pos') is not None:
             self.court_ball_pos = list(ball_data.get('pos'))
             self.ball_lost_timer.set()
             self.ball_data_valid = True
+            observed = True
         else:
             if self.ball_lost_timer.read() < self.ball_lost_timeout:
                 self.ball_data_valid = True
@@ -104,6 +162,54 @@ class State:
                 self.court_ball_pos = None
                 self.ball_data_valid = False
 
+        # --- カルマンフィルタによる補正 ---
+        dt = self.dt_timer.read() if hasattr(self, "dt_timer") else 0.05
+        if self.kalman_ball_pos is None:
+            # 初期化
+            if self.court_ball_pos is not None:
+                self.kalman_ball_pos = self.court_ball_pos.copy()
+                self.kalman_ball_vel = [0.0, 0.0]
+            else:
+                self.kalman_ball_pos = [0.0, 0.0]
+                self.kalman_ball_vel = [0.0, 0.0]
+
+        if observed and self.court_ball_pos is not None:
+            # 観測あり：カルマンフィルタ更新
+            # 予測
+            pred_pos = [
+                self.kalman_ball_pos[0] + self.kalman_ball_vel[0] * dt,
+                self.kalman_ball_pos[1] + self.kalman_ball_vel[1] * dt
+            ]
+            # 観測
+            z = self.court_ball_pos
+            # カルマンゲイン（簡易2次元ver.）
+            Kx = self.kalman_P[0][0] / \
+                (self.kalman_P[0][0] + self.kalman_R[0][0])
+            Ky = self.kalman_P[1][1] / \
+                (self.kalman_P[1][1] + self.kalman_R[1][1])
+            # 更新
+            self.kalman_ball_pos[0] = pred_pos[0] + Kx * (z[0] - pred_pos[0])
+            self.kalman_ball_pos[1] = pred_pos[1] + Ky * (z[1] - pred_pos[1])
+            # 速度も更新
+            if self.prev_ball_pos is not None and dt > 0:
+                self.kalman_ball_vel[0] = (
+                    self.kalman_ball_pos[0] - self.prev_ball_pos[0]) / dt
+                self.kalman_ball_vel[1] = (
+                    self.kalman_ball_pos[1] - self.prev_ball_pos[1]) / dt
+            # 共分散更新
+            self.kalman_P[0][0] = (1 - Kx) * \
+                self.kalman_P[0][0] + self.kalman_Q[0][0]
+            self.kalman_P[1][1] = (1 - Ky) * \
+                self.kalman_P[1][1] + self.kalman_Q[1][1]
+        else:
+            # 観測なし：予測のみ
+            self.kalman_ball_pos[0] += self.kalman_ball_vel[0] * dt
+            self.kalman_ball_pos[1] += self.kalman_ball_vel[1] * dt
+            self.kalman_P[0][0] += self.kalman_Q[0][0]
+            self.kalman_P[1][1] += self.kalman_Q[1][1]
+
+        # 通常のボール位置・速度もカルマン推定値で上書き
+        self.court_ball_pos = self.kalman_ball_pos.copy()
         if self.court_ball_pos is not None:
             if config.TEAM_SIDE == 'right' and enable_point_symmetry:
                 # 右側チームの場合、ボールの位置を反転

@@ -92,6 +92,18 @@ class StrategyManager:
                 command = self.start_game.run(id, rc)
                 # command = funny.circle_passing(
                 #     id, rc, [0, 0], radius=2)
+                # if id == 1:
+                #     if rc.state.photo_front:
+                #         command = rc.pass_ball.pass_ball([0.4, 0])
+                #     else:
+                #         command = rc.pass_ball.receive_ball(
+                #             [0.4, 0], [-0.4, 0])
+                # elif id == 0:
+                #     if rc.state.photo_front:
+                #         command = rc.pass_ball.pass_ball([-0.4, 0])
+                #     else:
+                #         command = rc.pass_ball.receive_ball(
+                #             [-0.4, 0], [0.4, 0])
 
             elif self.game_mode == 'ball_placement':
                 if (rc.state.court_ball_pos is None):

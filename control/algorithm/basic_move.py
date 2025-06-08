@@ -11,7 +11,7 @@ class BasicMove:
     def __init__(self, state, robot_id):
         self.state = state
         self.robot_id = robot_id
-        self.move_to_pos_pid = pid.PID(2.5, 0, 0.25)
+        self.move_to_pos_pid = pid.PID(3, 0, 0.5)
 
     def move(self, move_angle=0, move_speed=0, move_acce=0, face_angle=0, face_speed=0, face_axis=0, dribble=0, kick=0):
         move_speed = min(params.MAX_SPEED, move_speed)
