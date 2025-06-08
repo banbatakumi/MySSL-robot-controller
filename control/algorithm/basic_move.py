@@ -11,7 +11,7 @@ class BasicMove:
     def __init__(self, state, robot_id):
         self.state = state
         self.robot_id = robot_id
-        self.move_to_pos_pid = pid.PID(3, 0, 0.5)
+        self.move_to_pos_pid = pid.PID(2.5, 0, 0.25)
 
     def move(self, move_angle=0, move_speed=0, move_acce=0, face_angle=0, face_speed=0, face_axis=0, dribble=0, kick=0):
         move_speed = min(params.MAX_SPEED, move_speed)
@@ -56,12 +56,11 @@ class BasicMove:
             self.state.robot_pos[0] > goal_stop_area_x and
             abs(self.state.robot_pos[1]) < goal_stop_area_y
         )
+        if outor_line_area:
+            move_speed = 0
+            move_acce = 0
         if not self.robot_id == config.GK_ID and not config.NUM_ROBOTS <= 2:
-            if outor_line_area:
-                # move_speed = 0
-                # move_acce = 0
-                pass
-            elif in_own_goal_area:
+            if in_own_goal_area:
                 move_angle = self.state.own_goal_angle - 180 - self.state.robot_dir_angle
                 move_speed = params.MAX_SPEED
                 move_acce = 0

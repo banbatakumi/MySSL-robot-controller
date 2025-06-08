@@ -35,10 +35,26 @@ class State:
 
         self.dt_timer = timer.Timer()
 
+        self.ball_lost_timer = timer.Timer()
+        self.robot_lost_timer = timer.Timer()
+        self.ball_lost_timeout = 0.3  # 秒
+        self.robot_lost_timeout = 0.3  # 秒
+
     def update(self, robot_data, ball_data, enable_point_symmetry=True):
         # ロボットの位置と向きを更新
-        self.robot_pos = list(robot_data.get('pos')) if robot_data else None
-        self.robot_dir_angle = robot_data.get('angle') if robot_data else None
+        if robot_data and robot_data.get('pos') is not None and robot_data.get('angle') is not None:
+            self.robot_pos = list(robot_data.get('pos'))
+            self.robot_dir_angle = robot_data.get('angle')
+            self.robot_lost_timer.set()
+            self.robot_data_valid = True
+        else:
+            # データが来ていない場合、一定時間は前回値を保持
+            if self.robot_lost_timer.read() < self.robot_lost_timeout:
+                self.robot_data_valid = True
+            else:
+                self.robot_pos = None
+                self.robot_dir_angle = None
+                self.robot_data_valid = False
 
         if self.robot_pos is not None and self.robot_dir_angle is not None:
             if config.TEAM_SIDE == 'right' and enable_point_symmetry:
@@ -77,7 +93,16 @@ class State:
             return
 
         # ボールの位置を更新
-        self.court_ball_pos = list(ball_data.get('pos')) if ball_data else None
+        if ball_data and ball_data.get('pos') is not None:
+            self.court_ball_pos = list(ball_data.get('pos'))
+            self.ball_lost_timer.set()
+            self.ball_data_valid = True
+        else:
+            if self.ball_lost_timer.read() < self.ball_lost_timeout:
+                self.ball_data_valid = True
+            else:
+                self.court_ball_pos = None
+                self.ball_data_valid = False
 
         if self.court_ball_pos is not None:
             if config.TEAM_SIDE == 'right' and enable_point_symmetry:

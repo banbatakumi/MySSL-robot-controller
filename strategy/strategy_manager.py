@@ -65,9 +65,10 @@ class StrategyManager:
                     rc.send_stop_command()
 
     def update_strategy_and_control(self, vision_data):
-        ball_data = vision_data.get('orange_balls', [])[0]
-        court_ball_pos = list(ball_data.get('pos'))
-        if config.TEAM_SIDE == 'right':
+        orange_balls = vision_data.get('orange_balls', [])
+        ball_data = orange_balls[0] if orange_balls else None
+        court_ball_pos = list(ball_data.get('pos')) if ball_data else None
+        if config.TEAM_SIDE == 'right' and not court_ball_pos == None:
             # 右側チームの場合、ボール位置を反転
             court_ball_pos[0] *= -1
             court_ball_pos[1] *= -1

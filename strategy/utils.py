@@ -13,7 +13,8 @@ class Utils:
 
     def update_vision_data(self, vision_data):
         self.vision_data = vision_data
-        ball_data = vision_data.get('orange_balls')[0]
+        orange_balls = vision_data.get('orange_balls', [])
+        ball_data = orange_balls[0] if orange_balls else None
         yellow_robots_data = vision_data.get('yellow_robots', {})
         blue_robots_data = vision_data.get('blue_robots', {})
         if config.TEAM_COLOR == 'yellow':

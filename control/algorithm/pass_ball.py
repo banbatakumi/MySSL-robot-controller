@@ -16,9 +16,9 @@ class PassBall:
         target_dis = math.hypot(dx, dy)
 
         kick = 0
-        dribble = mymath.GapDeg(target_dir, self.state.robot_dir_angle) * 1.5
+        dribble = mymath.GapDeg(target_dir, self.state.robot_dir_angle) * 3
         if mymath.GapDeg(target_dir, self.state.robot_dir_angle) < 3:
-            kick = target_dis * 60
+            kick = target_dis * 65
         return self.basic_move.move(face_angle=target_dir,
                                     face_speed=mymath.PI,
                                     face_axis=1,

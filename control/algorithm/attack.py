@@ -12,7 +12,7 @@ class Attack:
             face_axis = 1
 
             dribble = mymath.GapDeg(
-                self.state.robot_dir_angle, self.state.opp_goal_angle) * 1.5
+                self.state.robot_dir_angle, self.state.opp_goal_angle) * 3
             dribble = min(100, dribble)
 
             kick = 0

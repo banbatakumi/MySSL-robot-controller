@@ -16,7 +16,7 @@ if TEAM_COLOR == 'blue':
     GUI_LISTEN_PORT = 50014
 
 
-NUM_ROBOTS = 6  # ロボットの数
+NUM_ROBOTS = 2  # ロボットの数
 GK_ID = 0  # ゴールキーパーのロボットID
 
 # ロボットごとの設定
@@ -31,10 +31,10 @@ for i in range(NUM_ROBOTS):
         "enabled": True
     }
 
-    # if i == 0:
-    #     robot_config["ip"] = "192.168.2.110"  # ロボット0のIP
-    # elif i == 1:
-    #     robot_config["ip"] = "192.168.2.111"  # ロボット1のIP
+    if i == 0:
+        robot_config["ip"] = "192.168.2.110"  # ロボット0のIP
+    elif i == 1:
+        robot_config["ip"] = "192.168.2.111"  # ロボット1のIP
 
     ROBOTS_CONFIG.append(robot_config)
 

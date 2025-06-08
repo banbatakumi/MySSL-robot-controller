@@ -12,7 +12,7 @@ class State:
         self.ball_dis = []
 
     def update(self, robots_data, ball_data):
-        court_ball_pos = list(ball_data.get('pos'))
+        court_ball_pos = list(ball_data.get('pos')) if ball_data else None
         if config.TEAM_SIDE == 'right':
             # 右側チームの場合、ボール位置を反転
             court_ball_pos[0] *= -1

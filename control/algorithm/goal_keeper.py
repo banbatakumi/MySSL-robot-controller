@@ -1,8 +1,6 @@
 import params
-import math
 import lib.my_math as mymath
 import lib.pid as pid
-import lib.timer as timer
 
 BALL_KICK_TIME = 1
 
@@ -11,7 +9,6 @@ class GoalKeeper:
     def __init__(self, state, basic_move):
         self.state = state
         self.basic_move = basic_move
-        self.ball_kick_timer = timer.Timer()
 
     def run(self):
         in_goal_area = (

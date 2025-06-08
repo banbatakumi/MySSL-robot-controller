@@ -3,9 +3,9 @@ import lib.my_math as mymath
 import params
 import config
 import strategy.algorithm.alignment as alignment
-import lib.timer as Timer
+import lib.timer as timer
 
-DEFENSE_BALL_KICK_TIME = 1
+GK_BALL_KICK_TIME = 1
 
 
 class RollState:
@@ -19,7 +19,7 @@ class RollState:
 class StartGame:
     def __init__(self, utils):
         self.utils = utils
-        self.defense_ball_kick_timer = Timer.Timer()
+        self.gk_ball_kick_timer = timer.Timer()
 
         if config.NUM_ROBOTS == 2:  # RCJ仕様
             self.df = RollState()
@@ -130,13 +130,13 @@ class StartGame:
             avaiable_ids = [0, 1]
             used_ids = []
 
-            self.of.id = self.utils.get_frontmost_robot(avaiable_ids)
+            self.of.id = 1
             used_ids.append(self.of.id)
 
             if id == self.of.id:
                 self.of.pos = rc.state.robot_pos
                 self.of.photo_front = rc.state.photo_front
-                if self.df.photo_front or rc.state.court_ball_pos[0] < -params.COURT_WIDTH * 0.25:
+                if self.df.photo_front or rc.state.court_ball_pos[0] < 0:
                     target_pos = [params.COURT_WIDTH * 0.5 - params.GOAL_AREA_HEIGHT -
                                   params.LINE_STOP_OFFSET*1.5, params.GOAL_AREA_WIDTH * 0.5 + params.LINE_STOP_OFFSET*1.5]
                     return rc.pass_ball.receive_ball(self.df.pos, [0.2, 0])
@@ -146,18 +146,18 @@ class StartGame:
             else:
                 self.df.pos = rc.state.robot_pos
                 self.df.photo_front = rc.state.photo_front
-                if rc.state.photo_front:
-                    return rc.pass_ball.pass_ball(self.of.pos)
-                else:
-                    if rc.state.court_ball_pos[0] < -params.COURT_WIDTH * 0.25:
-                        if self.defense_ball_kick_timer.read() > 0.5:
+                in_goal_area = (
+                    rc.state.court_ball_pos[0] < 0
+                )
+                if in_goal_area:
+                    if self.gk_ball_kick_timer.read() > GK_BALL_KICK_TIME:
+                        if rc.state.photo_front:
+                            return rc.pass_ball.pass_ball(self.of.pos)
+                        else:
                             return rc.basic_move.catch_ball()
-                    else:
-                        self.defense_ball_kick_timer.set()
-                    x = -params.COURT_WIDTH * 0.5 + params.ROBOT_D
-                    y = mymath.clip(
-                        rc.state.court_ball_pos[1], -params.GOAL_WIDTH * 0.5, params.GOAL_WIDTH * 0.5)
-                    return rc.basic_move.move_to_pos(x, y)
+                else:
+                    self.gk_ball_kick_timer.set()
+                return rc.goal_keeper.run()
 
         elif config.NUM_ROBOTS <= 6:
             if id == self.cb.id:
@@ -202,20 +202,19 @@ class StartGame:
                     #     self.omf.pos, self.fw.target_pos)
                     return rc.pass_ball.receive_ball(self.omf.pos, self.fw.target_pos)
             elif id == config.GK_ID:
-                # in_goal_area = (
-                #     rc.state.court_ball_pos[0] < -params.COURT_WIDTH * 0.5 + params.GOAL_AREA_HEIGHT and
-                #     abs(rc.state.court_ball_pos[1]
-                #         ) < params.GOAL_AREA_WIDTH * 0.5
-                # )
-                # if in_goal_area:
-                #     if self.defense_ball_kick_timer.read() > DEFENSE_BALL_KICK_TIME:
-                #         return rc.attack()
-                # else:
-                #     self.defense_ball_kick_timer.set()
-                # x = -params.COURT_WIDTH * 0.5 + params.ROBOT_D
-                # y = mymath.clip(
-                #     rc.state.court_ball_pos[1], -params.GOAL_WIDTH * 0.5, params.GOAL_WIDTH * 0.5)
-                # return rc.basic_move.move_to_pos(x, y)
+                in_goal_area = (
+                    rc.state.court_ball_pos[0] < -params.COURT_WIDTH * 0.5 + params.GOAL_AREA_HEIGHT and
+                    abs(rc.state.court_ball_pos[1]
+                        ) < params.GOAL_AREA_WIDTH * 0.5
+                )
+                if in_goal_area:
+                    if self.gk_ball_kick_timer.read() > GK_BALL_KICK_TIME:
+                        if rc.state.photo_front:
+                            return rc.pass_ball.pass_ball(self.dmf.pos)
+                        else:
+                            return rc.basic_move.catch_ball()
+                else:
+                    self.gk_ball_kick_timer.set()
                 return rc.goal_keeper.run()
 
             # if id == config.GK_ID:
