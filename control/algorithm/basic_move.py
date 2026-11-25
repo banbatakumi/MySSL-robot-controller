@@ -56,9 +56,9 @@ class BasicMove:
             self.state.robot_pos[0] > goal_stop_area_x and
             abs(self.state.robot_pos[1]) < goal_stop_area_y
         )
-        if outor_line_area:
-            move_speed = 0
-            move_acce = 0
+        # if outor_line_area:
+        #     move_speed = 0
+        #     move_acce = 0
         if not self.robot_id == config.GK_ID and not config.NUM_ROBOTS <= 2:
             if in_own_goal_area:
                 move_angle = self.state.own_goal_angle - 180 - self.state.robot_dir_angle

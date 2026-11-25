@@ -57,7 +57,7 @@ def main():
             vision_data = udp_comm.get_latest_vision_data()
             if not vision_data:
                 continue
-            # print(vision_data)
+            print(vision_data)
 
             for rc in robot_controllers.values():
                 rc.process_data_and_control(vision_data)

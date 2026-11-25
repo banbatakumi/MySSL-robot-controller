@@ -2,6 +2,8 @@ import os
 
 TEAM_COLOR = os.environ.get('TEAM_COLOR', 'yellow')  # 'yellow' or 'blue'
 TEAM_SIDE = os.environ.get('TEAM_SIDE', 'left')      # 'left' or 'right'
+# TEAM_COLOR = os.environ.get('TEAM_COLOR', 'blue')  # 'yellow' or 'blue'
+# TEAM_SIDE = os.environ.get('TEAM_SIDE', 'right')      # 'left' or 'right'
 
 INITIAI_ROBOT_PORT = 50020
 VISION_LISTEN_PORT = 50007
@@ -16,7 +18,7 @@ if TEAM_COLOR == 'blue':
     GUI_LISTEN_PORT = 50014
 
 
-NUM_ROBOTS = 2  # ロボットの数
+NUM_ROBOTS = 11  # ロボットの数
 GK_ID = 0  # ゴールキーパーのロボットID
 
 # ロボットごとの設定
@@ -31,10 +33,10 @@ for i in range(NUM_ROBOTS):
         "enabled": True
     }
 
-    if i == 0:
-        robot_config["ip"] = "192.168.2.110"  # ロボット0のIP
-    elif i == 1:
-        robot_config["ip"] = "192.168.2.111"  # ロボット1のIP
+    # if i == 0:
+    #     robot_config["ip"] = "192.168.2.110"  # ロボット0のIP
+    # elif i == 1:
+    #     robot_config["ip"] = "192.168.2.111"  # ロボット1のIP
 
     ROBOTS_CONFIG.append(robot_config)
 
